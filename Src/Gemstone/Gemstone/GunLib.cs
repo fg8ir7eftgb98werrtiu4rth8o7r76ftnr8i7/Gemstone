@@ -28,7 +28,6 @@ namespace Gemstone.Gemstone
         private static Vector3 lastGunPosition;
         private static Vector3 gunVelocity;
 
-        // Delayed pointer movement
         private static Vector3 smoothedEndPoint;
         private static Vector3 smoothedVelocity;
 
@@ -283,10 +282,9 @@ namespace Gemstone.Gemstone
                         offset = perpendicular * ((Mathf.Sin(t * 25f + Time.time * 10f) > 0) ? 0.15f : -0.15f) * envelope;
                         break;
                     case 13:
-                        float rayCircles = 8f; // Number of rings
+                        float rayCircles = 8f;
                         float raySpeed = 15f;
                         float rayAngle = (t * rayCircles * 2f * Mathf.PI) - (Time.time * raySpeed);
-                        // Inverse envelope so it's small at the point and large near the hand
                         float rayRadius = (1f - t) * 0.3f;
                         offset = (perpendicular * Mathf.Sin(rayAngle) + binormal * Mathf.Cos(rayAngle)) * rayRadius;
                         break;

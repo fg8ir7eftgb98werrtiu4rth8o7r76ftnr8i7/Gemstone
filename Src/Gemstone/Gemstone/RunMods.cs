@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Gemstone.patches;
+using GorillaLocomotion;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -61,6 +63,17 @@ namespace Gemstone.Gemstone
             if (ModConfig.instance.IsBraceletSpam.Value) Mods.Mods.BraceletSpam();
             if (ModConfig.instance.IsSpazMonke.Value) Mods.Mods.SpazMonke();
             if (ModConfig.instance.IsCherryBomb.Value) Mods.Mods.CherryBomb();
+            if (ModConfig.instance.FakeFBT.Value)
+            {
+                Mods.Mods.FakeFBT();
+            }
+            else
+            {
+                Mods.Mods.UnFakeFBT();
+            }
+            if (ModConfig.instance.IsRagdoll.Value) Mods.Mods.Ragdoll();
+            if (ModConfig.instance.IsWasdFly.Value) Mods.Mods.WasdFly();
+            Mods.Mods.UpdateCustomProperties();
             Mods.Mods.CreatePlayerOutline();
         }
     }

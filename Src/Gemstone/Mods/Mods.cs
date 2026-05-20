@@ -1,19 +1,19 @@
-﻿using Gemstone.Gemstone;
+﻿using BepInEx;
+using Gemstone.Gemstone;
 using Gemstone.patches;
 using GorillaGameModes;
 using GorillaLocomotion;
-using GorillaLocomotion.Climbing;
 using GorillaNetworking;
 using Photon.Pun;
 using Photon.Realtime;
 using Photon.Voice.Unity;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using TMPro;
+using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
 
 namespace Gemstone.Mods
@@ -25,11 +25,9 @@ namespace Gemstone.Mods
 
         public static Mods instance;
 
-        private Coroutine rgbCoroutine;
         private static readonly WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
         private static readonly WaitForSeconds beeDelay = new WaitForSeconds(0.3f);
 
-        // Vector constants to prevent per-frame structural allocation
         private static readonly Vector3 sphereScaleHand = new Vector3(0.1f, 0.1f, 0.1f);
         private static readonly Vector3 sphereScaleHead = new Vector3(0.2f, 0.2f, 0.2f);
         private static readonly Vector3 platScale = new Vector3(0.03f, 0.3f, 0.45f);
@@ -39,23 +37,6 @@ namespace Gemstone.Mods
         private static readonly Vector3 upOffset08 = new Vector3(0, 0.8f, 0);
         private static readonly Vector3 cherryBombPosOffset = new Vector3(0f, 9.5f, 0f);
 
-        public IEnumerator RGBTheme(Renderer targetRenderer)
-        {
-            float speed = 2f;
-
-            while (targetRenderer != null)
-            {
-                float t = Time.time * speed;
-
-                float r = Mathf.Sin(t) * 0.5f + 0.5f;
-                float g = Mathf.Sin(t + 2f) * 0.5f + 0.5f;
-                float b = Mathf.Sin(t + 4f) * 0.5f + 0.5f;
-
-                targetRenderer.material.color = new Color(r, g, b);
-
-                yield return null;
-            }
-        }
 
         void Awake()
         {
@@ -98,28 +79,34 @@ namespace Gemstone.Mods
 
                     // left hand
                     LeftS = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    LeftS.transform.parent = player.LeftHand.controllerTransform;
+                    LeftS.transform.parent = player.LeftHand.handFollower.transform;
                     LeftS.transform.localPosition = Vector3.zero;
                     LeftS.transform.localRotation = Quaternion.identity;
                     LeftS.transform.localScale = sphereScaleHand;
 
                     var rendL = LeftS.GetComponent<Renderer>();
                     rendL.material.shader = uberShader;
-                    rendL.material.color = themeColor;
+                    if (!ModConfig.instance.IsMenuRGB.Value)
+                        rendL.material.color = themeColor;
+                    else
+                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rendL));
 
-                    Destroy(LeftS.GetComponent<Rigidbody>());
+                        Destroy(LeftS.GetComponent<Rigidbody>());
                     Destroy(LeftS.GetComponent<Collider>());
 
                     // right hand
                     RightS = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    RightS.transform.parent = player.RightHand.controllerTransform;
+                    RightS.transform.parent = player.RightHand.handFollower.transform;
                     RightS.transform.localPosition = Vector3.zero;
                     RightS.transform.localRotation = Quaternion.identity;
                     RightS.transform.localScale = sphereScaleHand;
 
                     var rendR = RightS.GetComponent<Renderer>();
                     rendR.material.shader = uberShader;
-                    rendR.material.color = themeColor;
+                    if (!ModConfig.instance.IsMenuRGB.Value)
+                        rendR.material.color = themeColor;
+                    else
+                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rendR));
 
                     Destroy(RightS.GetComponent<Rigidbody>());
                     Destroy(RightS.GetComponent<Collider>());
@@ -133,7 +120,10 @@ namespace Gemstone.Mods
 
                     var rendH = HeadS.GetComponent<Renderer>();
                     rendH.material.shader = uberShader;
-                    rendH.material.color = themeColor;
+                    if (!ModConfig.instance.IsMenuRGB.Value)
+                        rendH.material.color = themeColor;
+                    else
+                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rendH));
 
                     Destroy(HeadS.GetComponent<Rigidbody>());
                     Destroy(HeadS.GetComponent<Collider>());
@@ -160,6 +150,247 @@ namespace Gemstone.Mods
                 if (rb != null) rb.linearVelocity = Vector3.zero;
             }
         }
+        private const float MouseSensitivity = 0.08f;
+
+        public static bool DisableMovement;
+        private static readonly Dictionary<Transform, Vector3> LastHandPositions = new Dictionary<Transform, Vector3>();
+        private static bool hasTouchedWithHand = false;
+        private static bool isJumping = false;
+
+        private static float jumpCooldownTime = 0f;
+        private static SphereCollider _probeCollider;
+
+        public static void WasdFly()
+        {
+            Rigidbody rigidbody = GorillaTagger.Instance.rigidbody;
+            Transform body = rigidbody.transform;
+            Transform head = GorillaTagger.Instance.headCollider.transform;
+
+            Transform leftHand = GorillaTagger.Instance.leftHandTransform;
+            Transform rightHand = GorillaTagger.Instance.rightHandTransform;
+
+            leftHand.localPosition += Vector3.down * 0.4f;
+            rightHand.localPosition += Vector3.down * 0.4f;
+
+            leftHand.localPosition -= Vector3.right * 0.2f;
+            rightHand.localPosition -= Vector3.left * 0.2f;
+
+            leftHand.localRotation = Quaternion.Euler(0, 0, 190);
+            rightHand.localRotation = Quaternion.Euler(0, 0, 190);
+
+            if (UnityInput.Current.GetKey(KeyCode.Q)) { leftHand.localPosition += Vector3.forward * 0.4f; leftHand.localPosition += Vector3.up * 0.1f; }
+            if (UnityInput.Current.GetKey(KeyCode.E)) { rightHand.localPosition += Vector3.forward * 0.4f; rightHand.localPosition += Vector3.up * 0.1f; }
+
+            if (Mouse.current.rightButton.isPressed)
+            {
+                Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+
+                body.Rotate(Vector3.up, mouseDelta.x * MouseSensitivity, Space.World);
+                head.Rotate(Vector3.right, -mouseDelta.y * MouseSensitivity, Space.Self);
+
+                Cursor.lockState = CursorLockMode.Locked;
+            }
+            else
+            {
+                Cursor.lockState = CursorLockMode.None;
+            }
+
+            Vector3 movementDirection = Vector3.zero;
+
+            bool isWalkMode = ModConfig.instance.IsWasdWalk.Value;
+            Vector3 forwardDirection = isWalkMode ? Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized : head.forward;
+            Vector3 rightDirection = isWalkMode ? Vector3.ProjectOnPlane(head.right, Vector3.up).normalized : head.right;
+
+            if (UnityInput.Current.GetKey(KeyCode.W)) movementDirection += forwardDirection;
+            if (UnityInput.Current.GetKey(KeyCode.S)) movementDirection -= forwardDirection;
+            if (UnityInput.Current.GetKey(KeyCode.A)) movementDirection -= rightDirection;
+            if (UnityInput.Current.GetKey(KeyCode.D)) movementDirection += rightDirection;
+
+            if (!isWalkMode && UnityInput.Current.GetKey(KeyCode.Space)) movementDirection += head.up;
+
+            float speed;
+            if (isWalkMode)
+            {
+                speed = UnityInput.Current.GetKey(KeyCode.LeftShift) ? 12f : 4.5f;
+            }
+            else
+            {
+                speed = UnityInput.Current.GetKey(KeyCode.LeftShift) ? 40f : 10f;
+            }
+
+            if (isJumping && Time.time >= jumpCooldownTime)
+            {
+                Collider[] groundCheck = Physics.OverlapSphere(
+                    body.position + Vector3.down * 0.5f,
+                    0.35f,
+                    GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
+                    QueryTriggerInteraction.Ignore
+                );
+
+                if (groundCheck.Length > 0)
+                {
+                    isJumping = false;
+                }
+            }
+
+            if (isWalkMode)
+            {
+                if (!DisableMovement && movementDirection != Vector3.zero)
+                {
+                    float currentSpeed = isJumping ? (speed * 0.15f) : speed;
+
+                    Vector3 targetWalkVelocity = movementDirection.normalized * currentSpeed;
+                    rigidbody.velocity = new Vector3(targetWalkVelocity.x, rigidbody.velocity.y, targetWalkVelocity.z);
+
+                    if (hasTouchedWithHand && !isJumping)
+                    {
+                        float swingSpeed = speed * 1.2f;
+                        float swingAmount = 0.25f;
+                        float wave = Mathf.Sin(Time.time * swingSpeed);
+
+                        leftHand.localPosition += Vector3.forward * (wave * swingAmount);
+                        rightHand.localPosition += Vector3.forward * (-wave * swingAmount);
+
+                        leftHand.localPosition += Vector3.up * (Mathf.Abs(wave) * 0.08f);
+                        rightHand.localPosition += Vector3.up * (Mathf.Abs(Mathf.Cos(Time.time * swingSpeed)) * 0.08f);
+                    }
+                }
+                else
+                {
+                    if (!isJumping)
+                    {
+                        rigidbody.velocity = new Vector3(0f, rigidbody.velocity.y, 0f);
+                    }
+                }
+
+                if (UnityInput.Current.GetKeyDown(KeyCode.Space) && hasTouchedWithHand && !isJumping)
+                {
+                    rigidbody.velocity = new Vector3(rigidbody.velocity.x, 6.5f, rigidbody.velocity.z);
+
+                    isJumping = true;
+                    hasTouchedWithHand = false;
+
+                    jumpCooldownTime = Time.time + 0.15f;
+                }
+
+                rigidbody.angularVelocity = Vector3.zero;
+            }
+            else
+            {
+                if (!DisableMovement && movementDirection != Vector3.zero)
+                {
+                    body.position += movementDirection.normalized * (Time.deltaTime * speed);
+                }
+
+                rigidbody.velocity = Vector3.zero;
+                rigidbody.angularVelocity = Vector3.zero;
+            }
+
+            ResolveHandCollision(leftHand);
+            ResolveHandCollision(rightHand);
+        }
+
+        private static void ResolveHandCollision(Transform hand)
+        {
+            const float handRadius = 0.075f;
+            const float skinWidth = 0.0025f;
+
+            if (!LastHandPositions.TryGetValue(hand, out Vector3 previousPosition))
+            {
+                previousPosition = hand.position;
+            }
+
+            Vector3 currentPosition = hand.position;
+            Vector3 moveDelta = currentPosition - previousPosition;
+
+            float distance = moveDelta.magnitude;
+
+            bool processingJumpRelease = isJumping && Time.time < jumpCooldownTime;
+
+            if (distance > 0.0001f)
+            {
+                Vector3 direction = moveDelta.normalized;
+
+                if (Physics.SphereCast(
+                        previousPosition,
+                        handRadius,
+                        direction,
+                        out RaycastHit hit,
+                        distance + skinWidth,
+                        GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
+                        QueryTriggerInteraction.Ignore))
+                {
+                    if (!processingJumpRelease)
+                    {
+                        isJumping = false;
+                        hasTouchedWithHand = true;
+                    }
+
+                    hand.position = hit.point + hit.normal * (handRadius + skinWidth);
+                    Vector3 remainingMovement = currentPosition - hand.position;
+                    Vector3 surfaceSlide = Vector3.ProjectOnPlane(remainingMovement, hit.normal);
+
+                    if (!Physics.SphereCast(
+                            hand.position,
+                            handRadius,
+                            surfaceSlide.normalized,
+                            out RaycastHit slideHit,
+                            surfaceSlide.magnitude,
+                            GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
+                            QueryTriggerInteraction.Ignore))
+                    {
+                        hand.position += surfaceSlide;
+                    }
+                }
+            }
+
+            Collider[] overlaps = Physics.OverlapSphere(
+                hand.position,
+                handRadius,
+                GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
+                QueryTriggerInteraction.Ignore);
+
+            if (overlaps.Length > 0 && !processingJumpRelease)
+            {
+                isJumping = false;
+                hasTouchedWithHand = true;
+            }
+
+            foreach (Collider col in overlaps)
+            {
+                if (Physics.ComputePenetration(
+                        GetHandProbe(handRadius, hand.position),
+                        hand.position,
+                        Quaternion.identity,
+                        col,
+                        col.transform.position,
+                        col.transform.rotation,
+                        out Vector3 direction,
+                        out float penetration))
+                {
+                    hand.position += direction * (penetration + skinWidth);
+                }
+            }
+
+            LastHandPositions[hand] = hand.position;
+        }
+
+        private static SphereCollider GetHandProbe(float radius, Vector3 position)
+        {
+            if (_probeCollider == null)
+            {
+                GameObject obj = new GameObject("HandCollisionProbe");
+                obj.hideFlags = HideFlags.HideAndDontSave;
+
+                _probeCollider = obj.AddComponent<SphereCollider>();
+                _probeCollider.isTrigger = true;
+            }
+
+            _probeCollider.radius = radius;
+            _probeCollider.transform.position = position;
+
+            return _probeCollider;
+        }
 
         public static void LongArms()
         {
@@ -185,78 +416,121 @@ namespace Gemstone.Mods
 
             prevRightPrimary = current;
         }
-
         public static void Platforms()
         {
             Color platcolor = ModConfig.Theme;
             var input = ControllerInputPoller.instance;
             var player = GTPlayer.Instance;
             Shader uberShader = Shader.Find("GorillaTag/UberShader");
+
             bool isRGB = ModConfig.instance.IsMenuRGB.Value;
             bool isInvis = ModConfig.instance.IsInvisPlat.Value;
 
             if (input.leftGrab && !IsLeftPlat)
             {
                 IsLeftPlat = true;
+
                 LeftPlat = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 LeftPlat.transform.position = player.LeftHand.controllerTransform.position;
                 LeftPlat.transform.rotation = player.LeftHand.controllerTransform.rotation;
                 LeftPlat.transform.localScale = platScale;
 
-                Destroy(LeftPlat.GetComponent<Rigidbody>());
+                Rigidbody rb = LeftPlat.AddComponent<Rigidbody>();
+                rb.useGravity = false;
+                rb.isKinematic = true;
 
                 if (!isInvis)
                 {
                     var rend = LeftPlat.GetComponent<Renderer>();
-                    rend.material.shader = uberShader;
-                    rend.material.color = platcolor;
-                    if (isRGB)
-                    {
-                        if (instance.rgbCoroutine != null)
-                            instance.StopCoroutine(instance.rgbCoroutine);
+                    rend.material = new Material(uberShader);
 
-                        instance.rgbCoroutine = instance.StartCoroutine(instance.RGBTheme(rend));
+                    if (!isRGB)
+                    {
+                        rend.material.color = platcolor;
                     }
+                    else
+                    {
+                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rend));
+                    }
+                }
+                else
+                {
+                    LeftPlat.GetComponent<Renderer>().enabled = false;
                 }
             }
 
             if (input.rightGrab && !IsRightPlat)
             {
                 IsRightPlat = true;
+
                 RightPlat = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 RightPlat.transform.position = player.RightHand.controllerTransform.position;
                 RightPlat.transform.rotation = player.RightHand.controllerTransform.rotation;
                 RightPlat.transform.localScale = platScale;
 
-                Destroy(RightPlat.GetComponent<Rigidbody>());
+                Rigidbody rb = RightPlat.AddComponent<Rigidbody>();
+                rb.useGravity = false;
+                rb.isKinematic = true;
 
                 if (!isInvis)
                 {
                     var rend = RightPlat.GetComponent<Renderer>();
-                    rend.material.shader = uberShader;
-                    rend.material.color = platcolor;
-                    if (isRGB)
-                    {
-                        if (instance.rgbCoroutine != null)
-                            instance.StopCoroutine(instance.rgbCoroutine);
+                    rend.material = new Material(uberShader);
 
-                        instance.rgbCoroutine = instance.StartCoroutine(instance.RGBTheme(rend));
+                    if (!isRGB)
+                    {
+                        rend.material.color = platcolor;
                     }
+                    else
+                    {
+                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rend));
+                    }
+                }
+                else
+                {
+                    RightPlat.GetComponent<Renderer>().enabled = false;
                 }
             }
 
             if (!input.leftGrab && IsLeftPlat)
             {
-                Destroy(LeftPlat);
                 IsLeftPlat = false;
+
+                if (LeftPlat != null)
+                {
+                    Object.Destroy(LeftPlat.GetComponent<Collider>());
+
+                    Rigidbody rb = LeftPlat.GetComponent<Rigidbody>();
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+
+                    GameObject platToDelete = LeftPlat;
+                    Object.Destroy(platToDelete, 5f);
+
+                    LeftPlat = null;
+                }
             }
 
             if (!input.rightGrab && IsRightPlat)
             {
-                Destroy(RightPlat);
                 IsRightPlat = false;
+
+                if (RightPlat != null)
+                {
+                    Object.Destroy(RightPlat.GetComponent<Collider>());
+
+                    Rigidbody rb = RightPlat.GetComponent<Rigidbody>();
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+
+                    GameObject platToDelete = RightPlat;
+                    Object.Destroy(platToDelete, 5f);
+
+                    RightPlat = null;
+                }
             }
         }
+
 
         public static void JoystickFly()
         {
@@ -519,6 +793,7 @@ namespace Gemstone.Mods
             {
                 VRRig.LocalRig.enabled = false;
                 VRRig.LocalRig.transform.position = GTPlayer.Instance.RightHand.controllerTransform.position;
+                VRRig.LocalRig.transform.rotation = GTPlayer.Instance.RightHand.handFollower.transform.rotation;
             }
             else
             {
@@ -1084,8 +1359,466 @@ namespace Gemstone.Mods
             SetBodyPatch(true, 6);
             UpdateRecBodyRotary();
         }
+        public static void RotateRig(Quaternion rot) {
+            VRRig.LocalRig.transform.rotation = rot;
+            GTPlayer.Instance.bodyCollider.transform.rotation = rot;
+            GTPlayer.Instance.headCollider.transform.rotation = rot;
+        }
+        private static bool hasSetupFakeFBT = false;
 
-        public static void DisableRecRoomBody() => SetBodyPatch(false);
+        public static void FakeFBT()
+        {
+            if (!hasSetupFakeFBT)
+            {
+                hasSetupFakeFBT = true;
+                TorsoPatch.VRRigLateUpdate += FullBody;
+            }
+        }
+
+        public static void UnFakeFBT()
+        {
+            if (hasSetupFakeFBT)
+            {
+                hasSetupFakeFBT = false;
+                TorsoPatch.VRRigLateUpdate -= FullBody;
+                FixRig();
+            }
+        }
+
+        public static void FullBody()
+        {
+            RotateRig(Camera.main.transform.rotation);
+            VRRig.LocalRig.leftHand.rigTarget.transform.position = GTPlayer.Instance.LeftHand.handFollower.transform.position;
+            VRRig.LocalRig.rightHand.rigTarget.transform.position = GTPlayer.Instance.RightHand.handFollower.transform.position;
+        }
+        public static void DisableRecRoomBody()
+        {
+            SetBodyPatch(false);
+        }
+
+        private static GameObject BodyCollider;
+        private static GameObject LeftHandCollider;
+        private static GameObject RightHandCollider;
+        private static GameObject HeadCollider;
+
+        private static bool IsHoldingRig;
+        private static bool isRagdollActive = false;
+        private static bool wasButtonHeldLastFrame = false;
+
+        public static void Ragdoll()
+        {
+            bool isButtonHeldThisFrame = ControllerInputPoller.instance.rightControllerPrimaryButton;
+
+            if (isButtonHeldThisFrame && !wasButtonHeldLastFrame)
+            {
+                isRagdollActive = !isRagdollActive;
+
+                if (!isRagdollActive)
+                {
+                    VRRig.LocalRig.enabled = true;
+                    IsHoldingRig = false;
+
+                    if (BodyCollider != null)
+                    {
+                        GameObject.Destroy(BodyCollider);
+                        BodyCollider = null;
+                    }
+
+                    if (HeadCollider != null)
+                    {
+                        GameObject.Destroy(HeadCollider);
+                        HeadCollider = null;
+                    }
+
+                    if (LeftHandCollider != null)
+                    {
+                        GameObject.Destroy(LeftHandCollider);
+                        LeftHandCollider = null;
+                    }
+
+                    if (RightHandCollider != null)
+                    {
+                        GameObject.Destroy(RightHandCollider);
+                        RightHandCollider = null;
+                    }
+                }
+            }
+
+            wasButtonHeldLastFrame = isButtonHeldThisFrame;
+
+            if (isRagdollActive)
+            {
+                VRRig.LocalRig.enabled = false;
+
+                Physics.defaultContactOffset = 0.005f;
+
+                if (BodyCollider == null)
+                {
+                    BodyCollider = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    BodyCollider.layer = 2;
+                    BodyCollider.transform.position = VRRig.LocalRig.transform.position;
+                    BodyCollider.transform.localScale = new Vector3(0.4f, 0.4f, 0.4f);
+
+                    Collider collider = BodyCollider.GetComponent<Collider>();
+
+                    Rigidbody rb = BodyCollider.AddComponent<Rigidbody>();
+                    rb.useGravity = false;
+                    rb.drag = 0.2f;
+                    rb.angularDrag = 0.4f;
+                    rb.maxAngularVelocity = 50f;
+                    rb.interpolation = RigidbodyInterpolation.Interpolate;
+                    rb.solverIterations = 12;
+                    rb.solverVelocityIterations = 12;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+
+                    rb.AddForce(Vector3.up * 0.3f, ForceMode.Impulse);
+
+                    rb.AddTorque(
+                        new Vector3(
+                            UnityEngine.Random.Range(-2f, 2f),
+                            UnityEngine.Random.Range(-2f, 2f),
+                            UnityEngine.Random.Range(-2f, 2f)
+                        ),
+                        ForceMode.Impulse
+                    );
+                }
+
+                if (HeadCollider == null)
+                {
+                    HeadCollider = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    HeadCollider.layer = 2;
+                    HeadCollider.transform.position = GTPlayer.Instance.headCollider.transform.position;
+                    HeadCollider.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
+
+                    Collider collider = HeadCollider.GetComponent<Collider>();
+
+                    Rigidbody rb = HeadCollider.AddComponent<Rigidbody>();
+                    rb.useGravity = false;
+                    rb.drag = 0.2f;
+                    rb.angularDrag = 0.4f;
+                    rb.maxAngularVelocity = 50f;
+                    rb.interpolation = RigidbodyInterpolation.Interpolate;
+                    rb.solverIterations = 12;
+                    rb.solverVelocityIterations = 12;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+
+                    rb.AddTorque(
+                        new Vector3(
+                            UnityEngine.Random.Range(-10f, 10f),
+                            UnityEngine.Random.Range(-10f, 10f),
+                            UnityEngine.Random.Range(-10f, 10f)
+                        ),
+                        ForceMode.Impulse
+                    );
+                }
+
+                if (LeftHandCollider == null)
+                {
+                    LeftHandCollider = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    LeftHandCollider.layer = 2;
+                    LeftHandCollider.transform.position = GTPlayer.Instance.LeftHand.handFollower.transform.position;
+                    LeftHandCollider.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+
+                    Collider collider = LeftHandCollider.GetComponent<Collider>();
+
+                    Rigidbody rb = LeftHandCollider.AddComponent<Rigidbody>();
+                    rb.useGravity = false;
+                    rb.drag = 1f;
+                    rb.angularDrag = 2f;
+                    rb.maxAngularVelocity = 50f;
+                    rb.interpolation = RigidbodyInterpolation.Interpolate;
+                    rb.solverIterations = 12;
+                    rb.solverVelocityIterations = 12;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+
+                    Vector3 dirToRig =
+                        (VRRig.LocalRig.transform.position - LeftHandCollider.transform.position).normalized;
+
+                    Vector3 randomOffset = UnityEngine.Random.insideUnitSphere * 0.15f;
+
+                    rb.AddForce(
+                        (dirToRig + randomOffset).normalized * 0.8f,
+                        ForceMode.Impulse
+                    );
+
+                    rb.AddTorque(
+                        UnityEngine.Random.insideUnitSphere * 1.5f,
+                        ForceMode.Impulse
+                    );
+                }
+
+                if (RightHandCollider == null)
+                {
+                    RightHandCollider = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    RightHandCollider.layer = 2;
+                    RightHandCollider.transform.position = GTPlayer.Instance.RightHand.handFollower.transform.position;
+                    RightHandCollider.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+
+                    Collider collider = RightHandCollider.GetComponent<Collider>();
+
+                    Rigidbody rb = RightHandCollider.AddComponent<Rigidbody>();
+                    rb.useGravity = false;
+                    rb.drag = 1f;
+                    rb.angularDrag = 2f;
+                    rb.maxAngularVelocity = 50f;
+                    rb.interpolation = RigidbodyInterpolation.Interpolate;
+                    rb.solverIterations = 12;
+                    rb.solverVelocityIterations = 12;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+
+                    Vector3 dirToRig =
+                        (VRRig.LocalRig.transform.position - RightHandCollider.transform.position).normalized;
+
+                    Vector3 randomOffset = UnityEngine.Random.insideUnitSphere * 0.15f;
+
+                    rb.AddForce(
+                        (dirToRig + randomOffset).normalized * 0.8f,
+                        ForceMode.Impulse
+                    );
+
+                    rb.AddTorque(
+                        UnityEngine.Random.insideUnitSphere * 1.5f,
+                        ForceMode.Impulse
+                    );
+                }
+
+                if (HeadCollider != null)
+                {
+                    HeadCollider.transform.position = GTPlayer.Instance.headCollider.transform.position;
+                }
+
+                PushOutOfGeometry(BodyCollider);
+                PushOutOfGeometry(HeadCollider);
+                PushOutOfGeometry(LeftHandCollider);
+                PushOutOfGeometry(RightHandCollider);
+
+                ConstrainHandDistance(LeftHandCollider, BodyCollider);
+                ConstrainHandDistance(RightHandCollider, BodyCollider);
+
+                HandleRigPickup();
+
+                Physics.SyncTransforms();
+
+                VRRig.LocalRig.transform.position = BodyCollider.transform.position;
+                VRRig.LocalRig.transform.rotation = BodyCollider.transform.rotation;
+
+                if (VRRig.LocalRig.head != null && VRRig.LocalRig.head.rigTarget != null && HeadCollider != null)
+                {
+                    VRRig.LocalRig.head.rigTarget.transform.rotation = HeadCollider.transform.rotation;
+                }
+
+                VRRig.LocalRig.leftHand.rigTarget.transform.position =
+                    LeftHandCollider.transform.position;
+
+                VRRig.LocalRig.rightHand.rigTarget.transform.position =
+                    RightHandCollider.transform.position;
+            }
+        }
+
+        private static void ConstrainHandDistance(GameObject handObj, GameObject bodyObj)
+        {
+            if (handObj == null || bodyObj == null || IsHoldingRig)
+                return;
+
+            const float maxArmLength = 0.5f;
+
+            Vector3 bodyPos = bodyObj.transform.position;
+            Vector3 handPos = handObj.transform.position;
+
+            Vector3 offset = handPos - bodyPos;
+            float currentDistance = offset.magnitude;
+
+            if (currentDistance > maxArmLength)
+            {
+                Vector3 direction = offset.normalized;
+
+                handObj.transform.position = bodyPos + direction * maxArmLength;
+
+                Rigidbody handRb = handObj.GetComponent<Rigidbody>();
+                if (handRb != null)
+                {
+                    float outwardSpeed = Vector3.Dot(handRb.linearVelocity, direction);
+                    if (outwardSpeed > 0f)
+                    {
+                        handRb.linearVelocity -= direction * outwardSpeed;
+                    }
+                }
+            }
+        }
+        private static void HandleRigPickup()
+        {
+            if (BodyCollider == null || LeftHandCollider == null || RightHandCollider == null)
+                return;
+
+            Transform leftHand = GTPlayer.Instance.LeftHand.handFollower.transform;
+            Transform rightHand = GTPlayer.Instance.RightHand.handFollower.transform;
+            Transform activeGrabbingHand = null;
+
+            if (ControllerInputPoller.instance.leftGrab)
+            {
+                Collider[] hits = Physics.OverlapSphere(
+                    leftHand.position,
+                    0.4f,
+                    ~0,
+                    QueryTriggerInteraction.Ignore
+                );
+
+                for (int i = 0; i < hits.Length; i++)
+                {
+                    GameObject obj = hits[i].gameObject;
+                    if (obj == BodyCollider || obj == LeftHandCollider || obj == RightHandCollider)
+                    {
+                        activeGrabbingHand = leftHand;
+                        break;
+                    }
+                }
+            }
+
+            if (activeGrabbingHand == null && ControllerInputPoller.instance.rightGrab)
+            {
+                Collider[] hits = Physics.OverlapSphere(
+                    rightHand.position,
+                    0.4f,
+                    ~0,
+                    QueryTriggerInteraction.Ignore
+                );
+
+                for (int i = 0; i < hits.Length; i++)
+                {
+                    GameObject obj = hits[i].gameObject;
+                    if (obj == BodyCollider || obj == LeftHandCollider || obj == RightHandCollider)
+                    {
+                        activeGrabbingHand = rightHand;
+                        break;
+                    }
+                }
+            }
+
+            if (activeGrabbingHand == null)
+            {
+                foreach (VRRig rig in VRRigCache.ActiveRigs)
+                {
+                    if (rig == null || rig.isLocal)
+                        continue;
+
+                    const float grabRadius = 0.45f;
+
+                    if (rig.IsMakingFistLeft() && rig.leftHand != null && rig.leftHand.rigTarget != null)
+                    {
+                        Vector3 extLeftHandPos = rig.leftHand.rigTarget.transform.position;
+
+                        bool closeToBody = Vector3.Distance(extLeftHandPos, BodyCollider.transform.position) <= grabRadius;
+                        bool closeToLeft = Vector3.Distance(extLeftHandPos, LeftHandCollider.transform.position) <= grabRadius;
+                        bool closeToRight = Vector3.Distance(extLeftHandPos, RightHandCollider.transform.position) <= grabRadius;
+
+                        if (closeToBody || closeToLeft || closeToRight)
+                        {
+                            activeGrabbingHand = rig.leftHand.rigTarget.transform;
+                            break;
+                        }
+                    }
+
+                    if (rig.IsMakingFistRight() && rig.rightHand != null && rig.rightHand.rigTarget != null)
+                    {
+                        Vector3 extRightHandPos = rig.rightHand.rigTarget.transform.position;
+
+                        bool closeToBody = Vector3.Distance(extRightHandPos, BodyCollider.transform.position) <= grabRadius;
+                        bool closeToLeft = Vector3.Distance(extRightHandPos, LeftHandCollider.transform.position) <= grabRadius;
+                        bool closeToRight = Vector3.Distance(extRightHandPos, RightHandCollider.transform.position) <= grabRadius;
+
+                        if (closeToBody || closeToLeft || closeToRight)
+                        {
+                            activeGrabbingHand = rig.rightHand.rigTarget.transform;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (activeGrabbingHand == null)
+            {
+                IsHoldingRig = false;
+                return;
+            }
+
+            IsHoldingRig = true;
+
+            Rigidbody bodyRb = BodyCollider.GetComponent<Rigidbody>();
+            Rigidbody leftRb = LeftHandCollider.GetComponent<Rigidbody>();
+            Rigidbody rightRb = RightHandCollider.GetComponent<Rigidbody>();
+
+            Vector3 targetPos = activeGrabbingHand.position + activeGrabbingHand.forward * 0.25f;
+
+            Vector3 bodyVelocity = (targetPos - BodyCollider.transform.position) * 18f;
+            bodyRb.linearVelocity = Vector3.Lerp(bodyRb.linearVelocity, bodyVelocity, Time.deltaTime * 8f);
+
+            Vector3 leftTarget = targetPos + (-activeGrabbingHand.right * 0.25f);
+            Vector3 rightTarget = targetPos + (activeGrabbingHand.right * 0.25f);
+
+            Vector3 leftVelocity = (leftTarget - LeftHandCollider.transform.position) * 12f;
+            Vector3 rightVelocity = (rightTarget - RightHandCollider.transform.position) * 12f;
+
+            leftRb.linearVelocity = Vector3.Lerp(leftRb.linearVelocity, leftVelocity, Time.deltaTime * 6f);
+            rightRb.linearVelocity = Vector3.Lerp(rightRb.linearVelocity, rightVelocity, Time.deltaTime * 6f);
+        }
+
+        private static void PushOutOfGeometry(GameObject obj)
+        {
+            if (obj == null)
+                return;
+
+            SphereCollider sphere = obj.GetComponent<SphereCollider>();
+
+            if (sphere == null)
+                return;
+
+            Vector3 worldCenter = sphere.bounds.center;
+            float radius = sphere.radius * obj.transform.lossyScale.x;
+
+            Collider[] overlaps = Physics.OverlapSphere(
+                worldCenter,
+                radius,
+                ~0,
+                QueryTriggerInteraction.Ignore
+            );
+
+            foreach (Collider hit in overlaps)
+            {
+                if (hit == sphere)
+                    continue;
+
+                Vector3 direction;
+                float distance;
+
+                bool overlapping = Physics.ComputePenetration(
+                    colliderA: sphere,
+                    positionA: obj.transform.position,
+                    rotationA: obj.transform.rotation,
+                    colliderB: hit,
+                    positionB: hit.transform.position,
+                    rotationB: hit.transform.rotation,
+                    direction: out direction,
+                    distance: out distance
+                );
+
+                if (overlapping)
+                {
+                    obj.transform.position += direction * (distance + 0.02f);
+
+                    Rigidbody rb = obj.GetComponent<Rigidbody>();
+
+                    if (rb != null)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+
+                        rb.AddForce(direction * 2f, ForceMode.VelocityChange);
+                    }
+                }
+            }
+        }
+        // I hate this. I hate how this is split into multiple voids but it has to be.. For simplicity, of course! (I'm ass at programming.)
+
 
         public static readonly int TransparentFX = LayerMask.NameToLayer("TransparentFX");
         public static readonly int IgnoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
@@ -1656,6 +2389,32 @@ namespace Gemstone.Mods
             hasSpawnedCherry = false;
             cherryAnimationPlayed = false;
             cherrySpawnTime = -1f;
+        }
+        public static void UpdateCustomProperties()
+        {
+            if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.InRoom && PhotonNetwork.LocalPlayer != null)
+            {
+                string propertyKey = "Gemstone. Version: " + Gemstone.PluginInfo.Version;
+
+                if (ModConfig.instance.MenuCustomPropertyEnabled.Value)
+                {
+                    if (!PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey(propertyKey) || !(bool)PhotonNetwork.LocalPlayer.CustomProperties[propertyKey])
+                    {
+                        ExitGames.Client.Photon.Hashtable customProperties = new ExitGames.Client.Photon.Hashtable();
+                        customProperties[propertyKey] = true;
+                        PhotonNetwork.LocalPlayer.SetCustomProperties(customProperties);
+                    }
+                }
+                else
+                {
+                    if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey(propertyKey))
+                    {
+                        ExitGames.Client.Photon.Hashtable customProperties = new ExitGames.Client.Photon.Hashtable();
+                        customProperties[propertyKey] = null;
+                        PhotonNetwork.LocalPlayer.SetCustomProperties(customProperties);
+                    }
+                }
+            }
         }
     }
 }

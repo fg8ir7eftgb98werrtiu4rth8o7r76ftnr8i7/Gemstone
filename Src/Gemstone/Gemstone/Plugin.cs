@@ -162,6 +162,8 @@ namespace Gemstone.Gemstone
             gameObject.AddComponent<RunMods>();
             gameObject.AddComponent<Cosmetx>();
             gameObject.AddComponent<JoinNotifs>();
+            gameObject.AddComponent<Gui>();
+            gameObject.AddComponent<ColoredBoards>();
             if (NotiLib.Instance == null)
             {
                 var notiObj = new GameObject("NotiLib");
@@ -270,7 +272,25 @@ namespace Gemstone.Gemstone
         }
         void Update()
         {
-            Mods.Mods.UpdateMOTDText($"Welcome To Gemstone Version: {PluginInfo.Version}!", "Welcome to gemstone! This menu has a few fun mods made just for you!\n\n\n If you get banned it is not I, The developers responsibility.");
+            if (UnityInput.Current.GetKey(KeyCode.Z)) ControllerInputPoller.instance.rightControllerPrimaryButton = true;
+            if (UnityInput.Current.GetKey(KeyCode.X)) ControllerInputPoller.instance.rightControllerSecondaryButton = true;
+            if (UnityInput.Current.GetKey(KeyCode.C)) ControllerInputPoller.instance.leftControllerPrimaryButton = true;
+            if (UnityInput.Current.GetKey(KeyCode.V)) ControllerInputPoller.instance.leftControllerSecondaryButton = true;
+            if (UnityInput.Current.GetKey(KeyCode.LeftControl)) ControllerInputPoller.instance.leftControllerTriggerButton = true;
+            if (UnityInput.Current.GetKey(KeyCode.LeftAlt)) ControllerInputPoller.instance.leftGrab = true;
+            if (UnityInput.Current.GetKey(KeyCode.RightControl)) ControllerInputPoller.instance.rightControllerTriggerButton = true;
+            if (UnityInput.Current.GetKey(KeyCode.RightAlt)) ControllerInputPoller.instance.rightGrab = true;
+            string roomName = PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.Name : "Not In Room";
+
+            string playerCount = PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.PlayerCount.ToString() : "0";
+
+
+            Mods.Mods.UpdateMOTDText(
+
+    $"Welcome To Gemstone Version: {PluginInfo.Version}!" + (PluginInfo.Debug ? "\n\n\n\n\n\n\n\nDEBUG BUILD" : ""),
+
+    $"Welcome to gemstone! This Menu Mas A Few Fun Mods Made Just For You!\n\n\nIf You Get Banned It Is Not I, The Developers Responsibility. \nThere Are: {PluginInfo.Mods} Mods In This Menu.\n\n\nCurrent Room: {roomName}\nPlayers: {playerCount}");
+
             if (globalClickCooldown > 0) globalClickCooldown -= Time.deltaTime;
             bool isButtonPressed = ControllerInputPoller.instance.leftControllerSecondaryButton;
 
@@ -501,24 +521,24 @@ namespace Gemstone.Gemstone
                 switch (currentCategoryIndex)
                 {
                     case 0:
-                        Pages = 5;
+                        Pages = 4;
                         if (currentPageIndex == 0)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Speed Boost"), ModConfig.instance.SpeedBoostEnabled);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Fly"), ModConfig.instance.FlyEnabled);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Platforms"), ModConfig.instance.IsPlatformsEnabled);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Joystick Fly"), ModConfig.instance.IsJoystickFly);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Fly (A)"), ModConfig.instance.FlyEnabled);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Platforms (LG, RG)"), ModConfig.instance.IsPlatformsEnabled);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Joystick Fly (LJ, RJ)"), ModConfig.instance.IsJoystickFly);
                         }
                         else if (currentPageIndex == 1)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Long Arms"), ModConfig.instance.LongArmsEnabled, () => Mods.Mods.UnLongArms());
-                            AddToggleButton(ref zOffset, step, Localization.Get("Ground Helper"), ModConfig.instance.IsGroundHelper);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Ground Helper (LG + A)"), ModConfig.instance.IsGroundHelper);
                             AddToggleButton(ref zOffset, step, Localization.Get("Amplified Monke"), ModConfig.instance.IsAmplifiedMonke);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Noclip"), ModConfig.instance.IsNoclipEnabled);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Noclip (B)"), ModConfig.instance.IsNoclipEnabled);
                         }
                         else if (currentPageIndex == 2)
                         {
-                            AddToggleButton(ref zOffset, step, Localization.Get("Web Slingers"), ModConfig.instance.IsWebSlingers);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Web Slingers (LG, RG)"), ModConfig.instance.IsWebSlingers);
                             AddToggleButton(ref zOffset, step, Localization.Get("Teleport Gun"), ModConfig.instance.IsTPGun);
                             AddToggleButton(ref zOffset, step, Localization.Get("Tag Gun (D?)"), ModConfig.instance.IsTagGun, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Tag All (D?)"), ModConfig.instance.IsTagAll, () => Mods.Mods.FixRig());
@@ -526,6 +546,7 @@ namespace Gemstone.Gemstone
                         else
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Box ESP"), ModConfig.instance.IsBoxEsp, () => Mods.Mods.CleanupBoxEsp());
+                            AddToggleButton(ref zOffset, step, Localization.Get("WASD Fly"), ModConfig.instance.IsWasdFly);
                         }
                             break;
 
@@ -543,21 +564,22 @@ namespace Gemstone.Gemstone
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Mute All"), () => Mods.Mods.MuteAll()); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Unmute All"), () => Mods.Mods.UnmuteAll()); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Ignore Far Tag"), () => ExtremelyFarTagPatch.isDetected = false); zOffset -= step;
+                            AddToggleButton(ref zOffset, step, Localization.Get("Show Menu Custom Property"), ModConfig.instance.MenuCustomPropertyEnabled);
                         }
                         break;
 
                     case 2:
-                        Pages = 4;
+                        Pages = 5;
                         if (currentPageIndex == 0)
                         {
-                            AddToggleButton(ref zOffset, step, Localization.Get("Ghost Monke"), ModConfig.instance.IsGhostMonke);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Lock Rig"), ModConfig.instance.IsLockOntoRig);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Hold Rig"), ModConfig.instance.IsHoldRig);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Rig Gun"), ModConfig.instance.IsRigGun);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Ghost Monke (A)"), ModConfig.instance.IsGhostMonke, () => Mods.Mods.FixRig());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Lock Rig"), ModConfig.instance.IsLockOntoRig, () => Mods.Mods.FixRig());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Hold Rig"), ModConfig.instance.IsHoldRig, () => Mods.Mods.FixRig());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Rig Gun"), ModConfig.instance.IsRigGun, () => Mods.Mods.FixRig());
                         }
                         else if (currentPageIndex == 1)
                         {
-                            AddToggleButton(ref zOffset, step, Localization.Get("Freeze Rig"), ModConfig.instance.IsFreezeRig);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Freeze Rig (B)"), ModConfig.instance.IsFreezeRig, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Upside Down Head"), ModConfig.instance.IsUpsideDownHead, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Backwards Head"), ModConfig.instance.IsBackwardsHead, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("funny rig"), ModConfig.instance.IsFunnyRig, () => Mods.Mods.FixRig());
@@ -569,11 +591,16 @@ namespace Gemstone.Gemstone
                             AddToggleButton(ref zOffset, step, Localization.Get("Realistic Looking"), ModConfig.instance.IsRealisticLooking, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Bees"), ModConfig.instance.IsBees, () => { StopCoroutine(beesCoroutine); beesCoroutine = null; Mods.Mods.FixRig(); });
                         }
-                        else
+                        else if (currentPageIndex == 3)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Copy Rig"), ModConfig.instance.IsCopyRigGun, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Invis Monke"), ModConfig.instance.IsInvisMonke, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Spaz Monke"), ModConfig.instance.IsSpazMonke, () => Mods.Mods.FixRig());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Fake Full Body Tracking"), ModConfig.instance.FakeFBT, () => Mods.Mods.FixRig());
+                        }
+                        else
+                        {
+                            AddToggleButton(ref zOffset, step, Localization.Get("Ragdoll (A)"), ModConfig.instance.IsRagdoll, () => Mods.Mods.FixRig());
                         }
                             break;
 
@@ -675,7 +702,7 @@ namespace Gemstone.Gemstone
                         Pages = 1;
                         AddButton(zOffset, 0f, 0.2f, Localization.Get("Unlock all cosmetics (CS)"), () => Mods.Cosmetx.Cosmetx.instance.ActivateCosmetx()); zOffset -= step;
                         AddButton(zOffset, 0f, 0.2f, Localization.Get("Max Quest Score"), () => Mods.Mods.MaxQuestScore()); zOffset -= step;
-                        AddToggleButton(ref zOffset, step, Localization.Get("Bracelet Spam"), ModConfig.instance.IsBraceletSpam, () => Mods.Mods.RemoveBracelet());
+                        AddToggleButton(ref zOffset, step, Localization.Get("Bracelet Spam (LG, RG, D?)"), ModConfig.instance.IsBraceletSpam, () => Mods.Mods.RemoveBracelet());
                         break;
                     case 6:
                         {
@@ -773,7 +800,7 @@ namespace Gemstone.Gemstone
 
                             break;
                         }
-                    case 7: // Soundboard Submenu
+                    case 7:
                         {
                             int soundsPerPage = 4;
                             int totalSounds = soundboardClips.Count;
@@ -802,7 +829,7 @@ namespace Gemstone.Gemstone
                             break;
                         }
                     case 8:
-                        Pages = 5;
+                        Pages = 6;
                         if (currentPageIndex == 0)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Silent Kick Gun"), ModConfig.instance.IsSilKick);
@@ -831,12 +858,16 @@ namespace Gemstone.Gemstone
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid Edit"), () => Mods.Mods.Video = "https://github.com/ChipLikesCereal/testvid/raw/refs/heads/main/edit.mp4"); zOffset -= step;
                             AddToggleButton(ref zOffset, step, Localization.Get("Cherry bomb"), ModConfig.instance.IsCherryBomb, () => Mods.Mods.NoCherryBomb());
                         }
-                        else
+                        else if (currentPageIndex == 4)
                         {
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid Zlothy"), () => Mods.Mods.Video = "https://github.com/ChipLikesCereal/testvid/raw/refs/heads/main/Zlothy.mov"); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid Barrier Remix"), () => Mods.Mods.Video = "https://github.com/ChipLikesCereal/testvid/raw/refs/heads/main/there%20is%20a%20barrier%20remix.mp4"); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid invincible wobbly edit"), () => Mods.Mods.Video = "https://github.com/ChipLikesCereal/testvid/raw/refs/heads/main/INVINCIBLEWOBBLYANIMATION.mp4"); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid Punch Mod"), () => Mods.Mods.Video = "https://github.com/ChipLikesCereal/testvid/raw/refs/heads/main/punchmod.mp4"); zOffset -= step;
+                        }
+                        else
+                        {
+                            AddToggleButton(ref zOffset, step, Localization.Get("Big Assets"), ModConfig.instance.IsBigAssets);
                         }
                             break;
                 }
@@ -867,7 +898,6 @@ namespace Gemstone.Gemstone
 
         public void DestroyMenu(bool refresh)
         {
-            // If we aren't just refreshing, tell the system the menu is gone
             if (!refresh) isMenuCreated = false;
 
             if (menuObj != null)
@@ -877,7 +907,6 @@ namespace Gemstone.Gemstone
 
                 if (!refresh)
                 {
-                    // CRITICAL: Unparent before destroying with a delay
                     menuObj.transform.SetParent(null, true);
 
                     Rigidbody rb = menuObj.GetComponent<Rigidbody>() ?? menuObj.AddComponent<Rigidbody>();
@@ -885,14 +914,12 @@ namespace Gemstone.Gemstone
                     rb.useGravity = true;
                     rb.AddForce(Vector3.down * 0.5f, ForceMode.Impulse);
 
-                    // Clear the reference so Update() doesn't try to scale it while it's falling
                     GameObject menuToDestroy = menuObj;
                     menuObj = null;
                     Destroy(menuToDestroy, 5f);
                 }
                 else
                 {
-                    // Refreshing: Destroy immediately
                     Destroy(menuObj);
                     menuObj = null;
                 }
@@ -904,14 +931,12 @@ namespace Gemstone.Gemstone
                 HandMenuCollider = null;
             }
 
-            // Cleanup buttons
             foreach (var b in btnObjs)
             {
                 if (b != null)
                 {
                     if (!refresh)
                     {
-                        // Stop following the hand
                         var follow = b.GetComponent<FollowMenu>();
                         if (follow != null) follow.target = null;
 
@@ -932,18 +957,19 @@ namespace Gemstone.Gemstone
             Config.Save();
         }
 
+
+
         void AddToggleButton(ref float z, float step, string name, ConfigEntry<bool> entry, Action onDisable = null, Action onEnable = null)
         {
-            AddButton(z, 0f, 0.2f, entry.Value ? $"[ON] {name}" : name, () => {
+            AddButton(z, 0f, 0.2f, name, () => {
                 entry.Value = !entry.Value;
                 if (entry.Value) onEnable?.Invoke();
                 else onDisable?.Invoke();
                 RefreshMenu();
-            });
+            }, entry.Value);
             z -= step;
         }
-
-        void AddButton(float z, float y, float s, string name, Action act)
+        void AddButton(float z, float y, float s, string name, Action act, bool isActive = false)
         {
             GameObject btn = null;
             if (menuBundle != null)
@@ -976,10 +1002,21 @@ namespace Gemstone.Gemstone
             {
                 renderer.material.shader = Shader.Find("GorillaTag/UberShader");
                 if (!ModConfig.instance.IsMenuRGB.Value)
-                    btn.GetComponent<Renderer>().material.color = ModConfig.Theme;
+                {
+                    if (isActive)
+                    {
+                        Color brightColor = ModConfig.Theme * 1.3f;
+                        brightColor.a = 1f;
+                        renderer.material.color = brightColor;
+                    }
+                    else
+                    {
+                        renderer.material.color = ModConfig.Theme;
+                    }
+                }
                 else
                 {
-                    StartCoroutine(RGBTheme(btn.GetComponent<Renderer>()));
+                    StartCoroutine(RGBTheme(renderer, isActive));
                 }
             }
 
@@ -1023,12 +1060,25 @@ namespace Gemstone.Gemstone
                 t.color = Color.white;
             }
 
-
-                btnObjs.Add(btn);
+            btnObjs.Add(btn);
         }
 
         public void PlayClickSound() { if (soundReady && cachedClip != null) audioSource.PlayOneShot(cachedClip); }
-        public IEnumerator RGBTheme(Renderer r) { while (true) { float t = Time.time * 2f; r.material.color = new Color(Mathf.Sin(t) * 0.5f + 0.5f, Mathf.Sin(t + 2f) * 0.5f + 0.5f, Mathf.Sin(t + 4f) * 0.5f + 0.5f); yield return null; } }
+        public IEnumerator RGBTheme(Renderer r, bool isActive = false)
+        {
+            while (true)
+            {
+                float speedMultiplier = isActive ? 5f : 2f;
+                float t = Time.time * speedMultiplier;
+
+                r.material.color = new Color(
+                    Mathf.Sin(t) * 0.5f + 0.5f,
+                    Mathf.Sin(t + 2f) * 0.5f + 0.5f,
+                    Mathf.Sin(t + 4f) * 0.5f + 0.5f
+                );
+                yield return null;
+            }
+        }
 
         public class FollowMenu : MonoBehaviour
         {

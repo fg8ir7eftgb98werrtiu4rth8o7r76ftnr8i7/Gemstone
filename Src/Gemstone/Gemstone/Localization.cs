@@ -16,13 +16,11 @@ namespace Gemstone.Gemstone
 
         private static int _lastLanguageId = -1;
 
-        /// <summary>
-        /// 1 = English
-        /// 2 = Spanish
-        /// 3 = German
-        /// 4 = Russian
-        /// 5 = Polish
-        /// </summary>
+        // 1 english
+        // 2 spanish
+        // 3 german
+        // 4 russian
+        // 5 polish
         public static int CurrentLanguage => ModConfig.instance.Language != null ? ModConfig.instance.Language.Value : 1;
 
         public static string Get(string key)
