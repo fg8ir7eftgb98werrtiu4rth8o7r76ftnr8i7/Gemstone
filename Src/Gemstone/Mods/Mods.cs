@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using Gemstone.Gemstone;
 using Gemstone.patches;
 using GorillaGameModes;
@@ -1294,56 +1294,51 @@ namespace Gemstone.Mods
         }
 
         private static List<RigFrame> recordedFrames = new List<RigFrame>();
+
         private static bool isRecording = false;
         private static bool isPlayingBack = false;
+
         private static int playbackIndex = 0;
 
-        private static bool prevRecordButton = false;
-        private static bool prevPlaybackButton = false;
+        private static bool prevAButton = false;
 
         public static void MovementRecorder()
         {
             var input = ControllerInputPoller.instance;
             var localRig = VRRig.LocalRig;
-            if (localRig == null) return;
 
-            bool recordButton = input.rightControllerPrimaryButton;
-            bool playbackButton = input.rightControllerSecondaryButton;
+            if (localRig == null)
+                return;
 
-            if (recordButton && !prevRecordButton)
+            bool aButton = input.rightControllerPrimaryButton;
+
+            if (aButton && !prevAButton)
             {
-                if (isPlayingBack)
-                {
-                    isPlayingBack = false;
-                    localRig.enabled = true;
-                }
-
-                isRecording = !isRecording;
-
-                if (isRecording)
+                if (!isRecording && !isPlayingBack)
                 {
                     recordedFrames.Clear();
+                    isRecording = true;
                 }
-            }
-            prevRecordButton = recordButton;
-
-            if (playbackButton && !prevPlaybackButton)
-            {
-                if (isRecording)
+                else if (isRecording)
                 {
                     isRecording = false;
+
+                    if (recordedFrames.Count > 0)
+                    {
+                        isPlayingBack = true;
+                        playbackIndex = 0;
+                        localRig.enabled = false;
+                    }
                 }
-
-                if (recordedFrames.Count > 0)
+                else if (isPlayingBack)
                 {
-                    isPlayingBack = !isPlayingBack;
+                    isPlayingBack = false;
                     playbackIndex = 0;
-
-                    localRig.enabled = !isPlayingBack;
+                    localRig.enabled = true;
                 }
             }
-            prevPlaybackButton = playbackButton;
 
+            prevAButton = aButton;
 
             if (isRecording)
             {
@@ -1361,6 +1356,7 @@ namespace Gemstone.Mods
                     rightHandPos = localRig.rightHand.rigTarget.transform.position,
                     rightHandRot = localRig.rightHand.rigTarget.transform.rotation
                 };
+
                 recordedFrames.Add(frame);
             }
             else if (isPlayingBack)
@@ -1385,7 +1381,9 @@ namespace Gemstone.Mods
                 }
                 else
                 {
+                    isPlayingBack = false;
                     playbackIndex = 0;
+                    localRig.enabled = true;
                 }
             }
         }
@@ -1514,7 +1512,6 @@ namespace Gemstone.Mods
         private static bool IsHoldingRig;
         private static bool isRagdollActive = false;
         private static bool wasButtonHeldLastFrame = false;
-
         public static void Ragdoll()
         {
             bool isButtonHeldThisFrame = ControllerInputPoller.instance.rightControllerPrimaryButton;
@@ -1695,6 +1692,24 @@ namespace Gemstone.Mods
                 if (HeadCollider != null)
                 {
                     HeadCollider.transform.position = GTPlayer.Instance.headCollider.transform.position;
+
+                    Quaternion rigRotation = VRRig.LocalRig.transform.rotation;
+                    Quaternion headRotation = HeadCollider.transform.rotation;
+
+                    Quaternion localHeadRotation = Quaternion.Inverse(rigRotation) * headRotation;
+
+                    Vector3 localEuler = localHeadRotation.eulerAngles;
+
+                    localEuler.x = NormalizeAngle(localEuler.x);
+                    localEuler.y = NormalizeAngle(localEuler.y);
+                    localEuler.z = NormalizeAngle(localEuler.z);
+
+                    localEuler.x = Mathf.Clamp(localEuler.x, -60f, 60f);
+                    localEuler.y = Mathf.Clamp(localEuler.y, -80f, 80f);
+                    localEuler.z = 0f;
+
+                    HeadCollider.transform.rotation =
+                        rigRotation * Quaternion.Euler(localEuler);
                 }
 
                 PushOutOfGeometry(BodyCollider);
@@ -1723,6 +1738,21 @@ namespace Gemstone.Mods
                 VRRig.LocalRig.rightHand.rigTarget.transform.position =
                     RightHandCollider.transform.position;
             }
+        }
+
+        private static float NormalizeAngle(float angle)
+        {
+            while (angle > 180f)
+            {
+                angle -= 360f;
+            }
+
+            while (angle < -180f)
+            {
+                angle += 360f;
+            }
+
+            return angle;
         }
 
         private static void ConstrainHandDistance(GameObject handObj, GameObject bodyObj)
@@ -1755,6 +1785,8 @@ namespace Gemstone.Mods
                 }
             }
         }
+        private static Transform currentGrabbingHand;
+
         private static void HandleRigPickup()
         {
             if (BodyCollider == null || LeftHandCollider == null || RightHandCollider == null)
@@ -1762,90 +1794,148 @@ namespace Gemstone.Mods
 
             Transform leftHand = GTPlayer.Instance.LeftHand.handFollower.transform;
             Transform rightHand = GTPlayer.Instance.RightHand.handFollower.transform;
-            Transform activeGrabbingHand = null;
 
-            if (ControllerInputPoller.instance.leftGrab)
+            bool localLeftGrab = ControllerInputPoller.instance.leftGrab;
+            bool localRightGrab = ControllerInputPoller.instance.rightGrab;
+
+            if (currentGrabbingHand == null)
             {
-                Collider[] hits = Physics.OverlapSphere(
-                    leftHand.position,
-                    0.4f,
-                    ~0,
-                    QueryTriggerInteraction.Ignore
-                );
-
-                for (int i = 0; i < hits.Length; i++)
+                if (localLeftGrab)
                 {
-                    GameObject obj = hits[i].gameObject;
-                    if (obj == BodyCollider || obj == LeftHandCollider || obj == RightHandCollider)
+                    Collider[] hits = Physics.OverlapSphere(
+                        leftHand.position,
+                        0.4f,
+                        ~0,
+                        QueryTriggerInteraction.Ignore
+                    );
+
+                    for (int i = 0; i < hits.Length; i++)
                     {
-                        activeGrabbingHand = leftHand;
-                        break;
-                    }
-                }
-            }
+                        GameObject obj = hits[i].gameObject;
 
-            if (activeGrabbingHand == null && ControllerInputPoller.instance.rightGrab)
-            {
-                Collider[] hits = Physics.OverlapSphere(
-                    rightHand.position,
-                    0.4f,
-                    ~0,
-                    QueryTriggerInteraction.Ignore
-                );
-
-                for (int i = 0; i < hits.Length; i++)
-                {
-                    GameObject obj = hits[i].gameObject;
-                    if (obj == BodyCollider || obj == LeftHandCollider || obj == RightHandCollider)
-                    {
-                        activeGrabbingHand = rightHand;
-                        break;
-                    }
-                }
-            }
-
-            if (activeGrabbingHand == null)
-            {
-                foreach (VRRig rig in VRRigCache.ActiveRigs)
-                {
-                    if (rig == null || rig.isLocal)
-                        continue;
-
-                    const float grabRadius = 0.45f;
-
-                    if (rig.IsMakingFistLeft() && rig.leftHand != null && rig.leftHand.rigTarget != null)
-                    {
-                        Vector3 extLeftHandPos = rig.leftHand.rigTarget.transform.position;
-
-                        bool closeToBody = Vector3.Distance(extLeftHandPos, BodyCollider.transform.position) <= grabRadius;
-                        bool closeToLeft = Vector3.Distance(extLeftHandPos, LeftHandCollider.transform.position) <= grabRadius;
-                        bool closeToRight = Vector3.Distance(extLeftHandPos, RightHandCollider.transform.position) <= grabRadius;
-
-                        if (closeToBody || closeToLeft || closeToRight)
+                        if (obj == BodyCollider || obj == LeftHandCollider || obj == RightHandCollider)
                         {
-                            activeGrabbingHand = rig.leftHand.rigTarget.transform;
-                            break;
-                        }
-                    }
-
-                    if (rig.IsMakingFistRight() && rig.rightHand != null && rig.rightHand.rigTarget != null)
-                    {
-                        Vector3 extRightHandPos = rig.rightHand.rigTarget.transform.position;
-
-                        bool closeToBody = Vector3.Distance(extRightHandPos, BodyCollider.transform.position) <= grabRadius;
-                        bool closeToLeft = Vector3.Distance(extRightHandPos, LeftHandCollider.transform.position) <= grabRadius;
-                        bool closeToRight = Vector3.Distance(extRightHandPos, RightHandCollider.transform.position) <= grabRadius;
-
-                        if (closeToBody || closeToLeft || closeToRight)
-                        {
-                            activeGrabbingHand = rig.rightHand.rigTarget.transform;
+                            currentGrabbingHand = leftHand;
                             break;
                         }
                     }
                 }
+
+                if (currentGrabbingHand == null && localRightGrab)
+                {
+                    Collider[] hits = Physics.OverlapSphere(
+                        rightHand.position,
+                        0.4f,
+                        ~0,
+                        QueryTriggerInteraction.Ignore
+                    );
+
+                    for (int i = 0; i < hits.Length; i++)
+                    {
+                        GameObject obj = hits[i].gameObject;
+
+                        if (obj == BodyCollider || obj == LeftHandCollider || obj == RightHandCollider)
+                        {
+                            currentGrabbingHand = rightHand;
+                            break;
+                        }
+                    }
+                }
+
+                if (currentGrabbingHand == null)
+                {
+                    foreach (VRRig rig in VRRigCache.ActiveRigs)
+                    {
+                        if (rig == null || rig.isLocal)
+                            continue;
+
+                        const float grabRadius = 0.45f;
+
+                        if (rig.IsMakingFistLeft() &&
+                            rig.leftHand != null &&
+                            rig.leftHand.rigTarget != null)
+                        {
+                            Vector3 pos = rig.leftHand.rigTarget.transform.position;
+
+                            bool touching =
+                                Vector3.Distance(pos, BodyCollider.transform.position) <= grabRadius ||
+                                Vector3.Distance(pos, LeftHandCollider.transform.position) <= grabRadius ||
+                                Vector3.Distance(pos, RightHandCollider.transform.position) <= grabRadius;
+
+                            if (touching)
+                            {
+                                currentGrabbingHand = rig.leftHand.rigTarget.transform;
+                                break;
+                            }
+                        }
+
+                        if (rig.IsMakingFistRight() &&
+                            rig.rightHand != null &&
+                            rig.rightHand.rigTarget != null)
+                        {
+                            Vector3 pos = rig.rightHand.rigTarget.transform.position;
+
+                            bool touching =
+                                Vector3.Distance(pos, BodyCollider.transform.position) <= grabRadius ||
+                                Vector3.Distance(pos, LeftHandCollider.transform.position) <= grabRadius ||
+                                Vector3.Distance(pos, RightHandCollider.transform.position) <= grabRadius;
+
+                            if (touching)
+                            {
+                                currentGrabbingHand = rig.rightHand.rigTarget.transform;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
 
-            if (activeGrabbingHand == null)
+            if (currentGrabbingHand != null)
+            {
+                bool stillHolding = false;
+
+                if (currentGrabbingHand == leftHand)
+                {
+                    stillHolding = localLeftGrab;
+                }
+                else if (currentGrabbingHand == rightHand)
+                {
+                    stillHolding = localRightGrab;
+                }
+                else
+                {
+                    foreach (VRRig rig in VRRigCache.ActiveRigs)
+                    {
+                        if (rig == null || rig.isLocal)
+                            continue;
+
+                        if (rig.leftHand != null &&
+                            rig.leftHand.rigTarget != null &&
+                            rig.leftHand.rigTarget.transform == currentGrabbingHand)
+                        {
+                            stillHolding = rig.IsMakingFistLeft();
+                            break;
+                        }
+
+                        if (rig.rightHand != null &&
+                            rig.rightHand.rigTarget != null &&
+                            rig.rightHand.rigTarget.transform == currentGrabbingHand)
+                        {
+                            stillHolding = rig.IsMakingFistRight();
+                            break;
+                        }
+                    }
+                }
+
+                if (!stillHolding)
+                {
+                    currentGrabbingHand = null;
+                    IsHoldingRig = false;
+                    return;
+                }
+            }
+
+            if (currentGrabbingHand == null)
             {
                 IsHoldingRig = false;
                 return;
@@ -1857,19 +1947,40 @@ namespace Gemstone.Mods
             Rigidbody leftRb = LeftHandCollider.GetComponent<Rigidbody>();
             Rigidbody rightRb = RightHandCollider.GetComponent<Rigidbody>();
 
-            Vector3 targetPos = activeGrabbingHand.position + activeGrabbingHand.forward * 0.25f;
+            Vector3 targetPos = currentGrabbingHand.position + currentGrabbingHand.forward * 0.25f;
 
-            Vector3 bodyVelocity = (targetPos - BodyCollider.transform.position) * 18f;
-            bodyRb.linearVelocity = Vector3.Lerp(bodyRb.linearVelocity, bodyVelocity, Time.deltaTime * 8f);
+            Vector3 bodyVelocity =
+                (targetPos - BodyCollider.transform.position) * 18f;
 
-            Vector3 leftTarget = targetPos + (-activeGrabbingHand.right * 0.25f);
-            Vector3 rightTarget = targetPos + (activeGrabbingHand.right * 0.25f);
+            bodyRb.linearVelocity = Vector3.Lerp(
+                bodyRb.linearVelocity,
+                bodyVelocity,
+                Time.deltaTime * 8f
+            );
 
-            Vector3 leftVelocity = (leftTarget - LeftHandCollider.transform.position) * 12f;
-            Vector3 rightVelocity = (rightTarget - RightHandCollider.transform.position) * 12f;
+            Vector3 leftTarget =
+                targetPos + (-currentGrabbingHand.right * 0.25f);
 
-            leftRb.linearVelocity = Vector3.Lerp(leftRb.linearVelocity, leftVelocity, Time.deltaTime * 6f);
-            rightRb.linearVelocity = Vector3.Lerp(rightRb.linearVelocity, rightVelocity, Time.deltaTime * 6f);
+            Vector3 rightTarget =
+                targetPos + (currentGrabbingHand.right * 0.25f);
+
+            Vector3 leftVelocity =
+                (leftTarget - LeftHandCollider.transform.position) * 12f;
+
+            Vector3 rightVelocity =
+                (rightTarget - RightHandCollider.transform.position) * 12f;
+
+            leftRb.linearVelocity = Vector3.Lerp(
+                leftRb.linearVelocity,
+                leftVelocity,
+                Time.deltaTime * 6f
+            );
+
+            rightRb.linearVelocity = Vector3.Lerp(
+                rightRb.linearVelocity,
+                rightVelocity,
+                Time.deltaTime * 6f
+            );
         }
 
         private static void PushOutOfGeometry(GameObject obj)
