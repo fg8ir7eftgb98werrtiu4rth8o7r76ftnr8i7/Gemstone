@@ -6,6 +6,6 @@
         public const string Name = "Gemstone.Menu";
         public const string Version = "1.1.3";
         public const bool Debug = true;
-        public const string Mods = "45";
+        public const string Mods = "46";
     }
 }

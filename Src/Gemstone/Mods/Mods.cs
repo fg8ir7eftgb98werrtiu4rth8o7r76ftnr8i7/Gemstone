@@ -1281,6 +1281,114 @@ namespace Gemstone.Mods
         public static float subThingy;
         public static float subThingyZ;
         public static Vector3 lastPosition = Vector3.zero;
+        private struct RigFrame
+        {
+            public Vector3 rootPos;
+            public Quaternion rootRot;
+            public Vector3 headPos;
+            public Quaternion headRot;
+            public Vector3 leftHandPos;
+            public Quaternion leftHandRot;
+            public Vector3 rightHandPos;
+            public Quaternion rightHandRot;
+        }
+
+        private static List<RigFrame> recordedFrames = new List<RigFrame>();
+        private static bool isRecording = false;
+        private static bool isPlayingBack = false;
+        private static int playbackIndex = 0;
+
+        private static bool prevRecordButton = false;
+        private static bool prevPlaybackButton = false;
+
+        public static void MovementRecorder()
+        {
+            var input = ControllerInputPoller.instance;
+            var localRig = VRRig.LocalRig;
+            if (localRig == null) return;
+
+            bool recordButton = input.rightControllerPrimaryButton;
+            bool playbackButton = input.rightControllerSecondaryButton;
+
+            if (recordButton && !prevRecordButton)
+            {
+                if (isPlayingBack)
+                {
+                    isPlayingBack = false;
+                    localRig.enabled = true;
+                }
+
+                isRecording = !isRecording;
+
+                if (isRecording)
+                {
+                    recordedFrames.Clear();
+                }
+            }
+            prevRecordButton = recordButton;
+
+            if (playbackButton && !prevPlaybackButton)
+            {
+                if (isRecording)
+                {
+                    isRecording = false;
+                }
+
+                if (recordedFrames.Count > 0)
+                {
+                    isPlayingBack = !isPlayingBack;
+                    playbackIndex = 0;
+
+                    localRig.enabled = !isPlayingBack;
+                }
+            }
+            prevPlaybackButton = playbackButton;
+
+
+            if (isRecording)
+            {
+                RigFrame frame = new RigFrame
+                {
+                    rootPos = localRig.transform.position,
+                    rootRot = localRig.transform.rotation,
+
+                    headPos = localRig.head.rigTarget.transform.position,
+                    headRot = localRig.head.rigTarget.transform.rotation,
+
+                    leftHandPos = localRig.leftHand.rigTarget.transform.position,
+                    leftHandRot = localRig.leftHand.rigTarget.transform.rotation,
+
+                    rightHandPos = localRig.rightHand.rigTarget.transform.position,
+                    rightHandRot = localRig.rightHand.rigTarget.transform.rotation
+                };
+                recordedFrames.Add(frame);
+            }
+            else if (isPlayingBack)
+            {
+                if (playbackIndex < recordedFrames.Count)
+                {
+                    RigFrame frame = recordedFrames[playbackIndex];
+
+                    localRig.transform.position = frame.rootPos;
+                    localRig.transform.rotation = frame.rootRot;
+
+                    localRig.head.rigTarget.transform.position = frame.headPos;
+                    localRig.head.rigTarget.transform.rotation = frame.headRot;
+
+                    localRig.leftHand.rigTarget.transform.position = frame.leftHandPos;
+                    localRig.leftHand.rigTarget.transform.rotation = frame.leftHandRot;
+
+                    localRig.rightHand.rigTarget.transform.position = frame.rightHandPos;
+                    localRig.rightHand.rigTarget.transform.rotation = frame.rightHandRot;
+
+                    playbackIndex++;
+                }
+                else
+                {
+                    playbackIndex = 0;
+                }
+            }
+        }
 
         public static void MessUpRig()
         {
@@ -1395,6 +1503,8 @@ namespace Gemstone.Mods
         {
             SetBodyPatch(false);
         }
+
+
 
         private static GameObject BodyCollider;
         private static GameObject LeftHandCollider;

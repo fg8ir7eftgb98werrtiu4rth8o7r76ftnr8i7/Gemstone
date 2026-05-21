@@ -149,6 +149,8 @@ namespace Gemstone.Gemstone
             DrawModToggle(Localization.Get("Fake Full Body"), ModConfig.instance.FakeFBT.Value, ModConfig.instance.FakeFBT, () => Mods.Mods.FixRig());
             GUILayout.Space(5);
             DrawModToggle(Localization.Get("WASD Walk"), ModConfig.instance.IsWasdWalk.Value, ModConfig.instance.IsWasdWalk);
+            GUILayout.Space(5);
+            DrawModToggle(Localization.Get("Movement Recorder"), ModConfig.instance.MovementRecorder.Value, ModConfig.instance.MovementRecorder);
             GUILayout.EndScrollView();
         }
 

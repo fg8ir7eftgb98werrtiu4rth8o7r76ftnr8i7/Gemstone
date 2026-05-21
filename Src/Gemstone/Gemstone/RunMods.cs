@@ -73,6 +73,7 @@ namespace Gemstone.Gemstone
             }
             if (ModConfig.instance.IsRagdoll.Value) Mods.Mods.Ragdoll();
             if (ModConfig.instance.IsWasdFly.Value) Mods.Mods.WasdFly();
+            if (ModConfig.instance.MovementRecorder.Value) Mods.Mods.MovementRecorder();
             Mods.Mods.UpdateCustomProperties();
             Mods.Mods.CreatePlayerOutline();
         }

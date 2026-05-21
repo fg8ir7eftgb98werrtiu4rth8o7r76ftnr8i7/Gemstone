@@ -17,7 +17,7 @@ namespace Gemstone.Gemstone
                          IsCoolSword, IsTravis, IsPhone, IsAdminGrab, IsKormakur,
                          IsAxe, IsBigAssets, IsTv, IsUpsideDownHead, IsBackwardsHead,
                          IsAntiReportEnabled, IsGhostMonke, IsMenuRGB, IsInvisPlat, IsFunnyRig, IsRecroomTorso, IsRecroomRig, IsRealisticLooking, ShowHandCollider, AdminLaser, IsBees, IsTagGun, IsTagAll, IsCopyRigGun,
-                         IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, FakeFBT, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, IsWasdWalk;
+                         IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, FakeFBT, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, IsWasdWalk, MovementRecorder;
 
         public ConfigEntry<float> FlySpeedSave, WebSlingSpeedSave, R, G, B, GunSmoothness;
         public ConfigEntry<int> Language, GunType, MenuType;
@@ -101,6 +101,7 @@ namespace Gemstone.Gemstone
             IsCherryBomb = Plugin.instance.Config.Bind("Admin", "CherryBomb idfk", false, "");
             IsRagdoll = Plugin.instance.Config.Bind("Rig", "Ragdoll", false, "");
             IsWasdWalk = Plugin.instance.Config.Bind("Movement", "Wasd Walk", false, "");
+            MovementRecorder = Plugin.instance.Config.Bind("Movement", "Movement Recorder", false, "");
         }
     }
 }

@@ -547,6 +547,7 @@ namespace Gemstone.Gemstone
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Box ESP"), ModConfig.instance.IsBoxEsp, () => Mods.Mods.CleanupBoxEsp());
                             AddToggleButton(ref zOffset, step, Localization.Get("WASD Fly"), ModConfig.instance.IsWasdFly);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Movement Recorder"), ModConfig.instance.MovementRecorder);
                         }
                             break;
 
