@@ -10,14 +10,6 @@
         "user-id": "EBF4D7AE3CD9E4E6"
     },
     {
-        "name": "Yuzir",
-        "user-id": "FF88D87D7A35078E"
-    },
-    {
-        "name": "Gore",
-        "user-id": "EA1890560D1B7F87"
-    },
-    {
       "name": "industry",
       "user-id": "4605B2A0900028E1"
     },
@@ -28,10 +20,6 @@
     {
         "name": "ObjectGT",
         "user-id": "69B87228EC7FF7F2"
-    },
-    {
-        "name": "OmalleyGT",
-        "user-id": "E4C1C960B316D71"
     },
     {
       "name": "kingofnetflix",
@@ -58,16 +46,8 @@
         "user-id": "3125C92124A652C4"
     },
     {
-        "name": "Jolyne",
-        "user-id": "1FCB35BC16B01331"
-    },
-    {
         "name": "AltA",
         "user-id": "DE3BED8BF8600272"
-    },
-    {
-        "name": "LittleMonkey",
-        "user-id": "EA317E5FBDE3F3DA"
     }
   ],
   "super-admins": [
@@ -75,7 +55,6 @@
       "LexiAlt",
       "kingofnetflix",
       "Twig",
-      "Inoxi",
       "ObjectGT"
   ]
 }
