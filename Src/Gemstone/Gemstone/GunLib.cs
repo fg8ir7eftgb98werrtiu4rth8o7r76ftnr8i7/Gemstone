@@ -105,6 +105,14 @@ namespace Gemstone.Gemstone
 
             if (holding && GunObject != null)
             {
+                if (ControllerInputPoller.instance.rightControllerTriggerButton)
+                {
+                    GorillaTagger.Instance.StartVibration(
+    false,
+    GorillaTagger.Instance.tagHapticStrength / 1.2f,
+    0.02f
+);
+                }
                 float downwardAngle = 50f;
                 Vector3 direction = Quaternion.AngleAxis(downwardAngle, hand.right) * hand.forward;
                 Ray ray = new Ray(hand.position, direction);

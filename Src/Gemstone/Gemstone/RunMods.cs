@@ -46,7 +46,7 @@ namespace Gemstone.Gemstone
             if (ModConfig.instance.IsFunnyRig.Value) Mods.Mods.MessUpRig();
             if (ModConfig.instance.IsRecroomTorso.Value) Mods.Mods.RecRoomTorso();
             if (ModConfig.instance.IsRecroomRig.Value) Mods.Mods.RecRoomRig();
-            if (ModConfig.instance.IsRealisticLooking.Value) Mods.Mods.RealLooking();
+            if (ModConfig.instance.FullBodyTracking.Value) Mods.Mods.FullBodyTracking();
             if (ModConfig.instance.AdminLaser.Value) Mods.Mods.AdminLaser();
             if (ModConfig.instance.IsBees.Value)
             {
@@ -63,17 +63,24 @@ namespace Gemstone.Gemstone
             if (ModConfig.instance.IsBraceletSpam.Value) Mods.Mods.BraceletSpam();
             if (ModConfig.instance.IsSpazMonke.Value) Mods.Mods.SpazMonke();
             if (ModConfig.instance.IsCherryBomb.Value) Mods.Mods.CherryBomb();
-            if (ModConfig.instance.FakeFBT.Value)
-            {
-                Mods.Mods.FakeFBT();
-            }
-            else
-            {
-                Mods.Mods.UnFakeFBT();
-            }
             if (ModConfig.instance.IsRagdoll.Value) Mods.Mods.Ragdoll();
             if (ModConfig.instance.IsWasdFly.Value) Mods.Mods.WasdFly();
             if (ModConfig.instance.MovementRecorder.Value) Mods.Mods.MovementRecorder();
+            if (ModConfig.instance.Fling.Value) Mods.Mods.Fling();
+            if (ModConfig.instance.IsSkeletonEsp.Value) Mods.Mods.SkeletonESP();
+            if (ModConfig.instance.IsEnabledBuilderShelf.Value) Mods.Mods.EnableBuilderShelf();
+            if (ModConfig.instance.IsAnnoy.Value) Mods.Mods.Annoy();
+            if (ModConfig.instance.IsNametags.Value) Mods.Mods.NametagsMod();
+            if (ModConfig.instance.IsJmanSoundSpam.Value) Mods.Mods.SoundSpam(UnityEngine.Random.Range(336, 338));
+            if (ModConfig.instance.IsCrystalSoundSpam.Value)
+            {
+                int[] sounds = {
+                UnityEngine.Random.Range(40,54),
+                UnityEngine.Random.Range(214,221)
+            };
+                Mods.Mods.SoundSpam(sounds[UnityEngine.Random.Range(0, 1)]);
+            }
+            if (ModConfig.instance.Dash.Value) Mods.Mods.Dash();
             Mods.Mods.UpdateCustomProperties();
             Mods.Mods.CreatePlayerOutline();
         }

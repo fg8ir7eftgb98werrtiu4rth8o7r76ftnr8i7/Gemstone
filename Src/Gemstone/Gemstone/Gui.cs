@@ -31,9 +31,21 @@ namespace Gemstone.Gemstone
             GUI.skin.window.margin = new RectOffset(5, 5, 5, 5);
             GUI.skin.window.padding = new RectOffset(10, 10, 10, 10);
 
-            connectionWindowRect = GUI.Window(0, connectionWindowRect, DrawConnectionWindow, "");
+            Color originalBackgroundColor = GUI.backgroundColor;
+            Color originalContentColor = GUI.contentColor;
+            Color originalColor = GUI.color;
 
+            if (ModConfig.instance != null)
+            {
+                GUI.backgroundColor = ModConfig.Theme;
+            }
+
+            connectionWindowRect = GUI.Window(0, connectionWindowRect, DrawConnectionWindow, "");
             modsWindowRect = GUI.Window(1, modsWindowRect, DrawModsWindow, "");
+
+            GUI.backgroundColor = originalBackgroundColor;
+            GUI.contentColor = originalContentColor;
+            GUI.color = originalColor;
         }
 
         private void DrawConnectionWindow(int windowID)
@@ -69,6 +81,12 @@ namespace Gemstone.Gemstone
                 return;
             }
 
+            Color originalBackgroundColor = GUI.backgroundColor;
+            if (ModConfig.instance != null)
+            {
+                GUI.backgroundColor = ModConfig.Theme;
+            }
+
             GUILayout.BeginHorizontal();
             if (GUILayout.Toggle(currentGuiTab == 0, "Mods", "Button", GUILayout.Height(25))) currentGuiTab = 0;
             if (GUILayout.Toggle(currentGuiTab == 1, "Players", "Button", GUILayout.Height(25))) currentGuiTab = 1;
@@ -78,6 +96,8 @@ namespace Gemstone.Gemstone
                 if (GUILayout.Toggle(currentGuiTab == 3, "Admin", "Button", GUILayout.Height(25))) currentGuiTab = 3;
             }
             GUILayout.EndHorizontal();
+
+            GUI.backgroundColor = originalBackgroundColor;
 
             GUILayout.Space(5);
 
@@ -144,9 +164,9 @@ namespace Gemstone.Gemstone
             GUILayout.Space(5);
             DrawModToggle(Localization.Get("Anti Report"), ModConfig.instance.IsAntiReportEnabled.Value, ModConfig.instance.IsAntiReportEnabled);
             GUILayout.Space(5);
-            DrawModToggle(Localization.Get("Ragdoll"), ModConfig.instance.IsRagdoll.Value, ModConfig.instance.IsRagdoll, () => Mods.Mods.FixRig());
+            DrawModToggle(Localization.Get("Full Body Tracking"), ModConfig.instance.FullBodyTracking.Value, ModConfig.instance.FullBodyTracking, () => Mods.Mods.FixRig());
             GUILayout.Space(5);
-            DrawModToggle(Localization.Get("Fake Full Body"), ModConfig.instance.FakeFBT.Value, ModConfig.instance.FakeFBT, () => Mods.Mods.FixRig());
+            DrawModToggle(Localization.Get("Ragdoll"), ModConfig.instance.IsRagdoll.Value, ModConfig.instance.IsRagdoll, () => Mods.Mods.FixRig());
             GUILayout.Space(5);
             DrawModToggle(Localization.Get("WASD Walk"), ModConfig.instance.IsWasdWalk.Value, ModConfig.instance.IsWasdWalk);
             GUILayout.Space(5);
@@ -338,6 +358,12 @@ namespace Gemstone.Gemstone
 
         private void AddButton(string label, Action onClickAction)
         {
+            Color originalBackgroundColor = GUI.backgroundColor;
+            if (ModConfig.instance != null)
+            {
+                GUI.backgroundColor = ModConfig.Theme;
+            }
+
             if (GUILayout.Button(label, GUILayout.Height(30)))
             {
                 onClickAction?.Invoke();
@@ -347,10 +373,18 @@ namespace Gemstone.Gemstone
                     Plugin.instance.audioSource?.PlayOneShot(Plugin.instance.audioSource.clip);
                 }
             }
+
+            GUI.backgroundColor = originalBackgroundColor;
         }
 
         private void DrawModButton(string title, Action onPressedAction)
         {
+            Color originalBackgroundColor = GUI.backgroundColor;
+            if (ModConfig.instance != null)
+            {
+                GUI.backgroundColor = ModConfig.Theme;
+            }
+
             if (GUILayout.Button(title, GUILayout.Height(25)))
             {
                 onPressedAction?.Invoke();
@@ -360,13 +394,23 @@ namespace Gemstone.Gemstone
                     Plugin.instance.audioSource?.PlayOneShot(Plugin.instance.audioSource.clip);
                 }
             }
+
+            GUI.backgroundColor = originalBackgroundColor;
         }
 
         private void DrawModToggle(string title, bool enabled, BepInEx.Configuration.ConfigEntry<bool> configEntry, Action onDisable = null)
         {
             if (configEntry == null) return;
 
+            Color originalBackgroundColor = GUI.backgroundColor;
+            if (ModConfig.instance != null)
+            {
+                GUI.backgroundColor = enabled ? ModConfig.Theme : originalBackgroundColor;
+            }
+
             bool newState = GUILayout.Toggle(enabled, $" {title}", GUILayout.Height(22));
+
+            GUI.backgroundColor = originalBackgroundColor;
 
             if (newState != enabled)
             {

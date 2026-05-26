@@ -17,6 +17,7 @@ using UnityEngine.Networking;
 using Photon.Voice.Unity;
 using CosmeticRoom;
 using Gemstone.Mods.Cosmetx;
+using System.Linq;
 
 namespace Gemstone.Gemstone
 {
@@ -24,7 +25,6 @@ namespace Gemstone.Gemstone
     public class Plugin : BaseUnityPlugin
     {
         public static Plugin instance { get; private set; }
-        public static bool hasGivenNotif = false;
         public static int Pages = 0;
         private bool isMenuCreated;
         private GameObject menuObj;
@@ -34,7 +34,7 @@ namespace Gemstone.Gemstone
 
         private bool menuOpen = false;
         private bool buttonWasPressed = false;
-
+        private bool lastRigState = false;
         private Vector3 menuForwardOffset = new Vector3(0.08f, 0f, 0f);
         private void LoadMenuAssetBundle()
         {
@@ -123,6 +123,7 @@ namespace Gemstone.Gemstone
         }
 
         public GameObject HandMenuCollider;
+        public GameObject HandMenuCollider2;
         public List<GameObject> btnObjs = new List<GameObject>();
         public float globalClickCooldown = 0f;
         public int currentCategoryIndex = -1;
@@ -272,6 +273,130 @@ namespace Gemstone.Gemstone
         }
         void Update()
         {
+            foreach (VRRig rig in VRRigCache.ActiveRigs)
+            {
+                if (rig != null && rig.Creator != null)
+                {
+                    UnityEngine.Color gemstoneColorStart = new UnityEngine.Color(0.6f, 0f, 1f);
+                    UnityEngine.Color gemstoneColorEnd = new UnityEngine.Color(0f, 1f, 1f);
+
+                    string gemstoneBaseTag = "[Gemstone User]";
+                    string gemstoneGradientTag = " ";
+                    for (int i = 0; i < gemstoneBaseTag.Length; i++)
+                    {
+                        float t = (float)i / (gemstoneBaseTag.Length - 1);
+                        UnityEngine.Color currentColor = UnityEngine.Color.Lerp(gemstoneColorStart, gemstoneColorEnd, t);
+                        string hexColor = UnityEngine.ColorUtility.ToHtmlStringRGB(currentColor);
+
+                        gemstoneGradientTag += $"<color=#{hexColor}>{gemstoneBaseTag[i]}</color>";
+                    }
+
+                    UnityEngine.Color chudColorStart = new UnityEngine.Color(0.5f, 0f, 0f);
+                    UnityEngine.Color chudColorEnd = new UnityEngine.Color(0.2f, 0.2f, 0.2f);
+
+                    string chudBaseTag = "[Chud Menu User]";
+                    string chudGradientTag = " ";
+                    for (int i = 0; i < chudBaseTag.Length; i++)
+                    {
+                        float t = (float)i / (chudBaseTag.Length - 1);
+                        UnityEngine.Color currentColor = UnityEngine.Color.Lerp(chudColorStart, chudColorEnd, t);
+                        string hexColor = UnityEngine.ColorUtility.ToHtmlStringRGB(currentColor);
+
+                        chudGradientTag += $"<color=#{hexColor}>{chudBaseTag[i]}</color>";
+                    }
+
+                    if (rig.isLocal || rig.Creator.IsLocal)
+                    {
+                        if (ModConfig.instance.MenuCustomPropertyEnabled.Value)
+                        {
+                            if (!rig.playerText1.text.Contains(gemstoneGradientTag))
+                            {
+                                rig.playerText1.text += gemstoneGradientTag;
+                            }
+                        }
+                        else
+                        {
+                            if (rig.playerText1.text.Contains(gemstoneGradientTag))
+                            {
+                                rig.playerText1.text = rig.playerText1.text.Replace(gemstoneGradientTag, "").TrimEnd();
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (rig.Creator.GetPlayerRef() != null)
+                    {
+                        var properties = rig.Creator.GetPlayerRef().CustomProperties;
+                        bool hasActiveGemstoneProperty = false;
+                        bool hasActiveChudProperty = false;
+
+                        if (properties != null && properties.Count > 0)
+                        {
+                            foreach (var keyObj in properties.Keys)
+                            {
+                                if (keyObj != null)
+                                {
+                                    string key = keyObj.ToString();
+
+                                    if (key.Contains("Gemstone."))
+                                    {
+                                        if (properties[keyObj] is bool isGemstone && isGemstone)
+                                        {
+                                            hasActiveGemstoneProperty = true;
+                                        }
+                                        else if (properties[keyObj] is int intGemstone && intGemstone == 1)
+                                        {
+                                            hasActiveGemstoneProperty = true;
+                                        }
+                                    }
+                                    else if (key.Contains("Chud"))
+                                    {
+                                        if (properties[keyObj] is bool isChud && isChud)
+                                        {
+                                            hasActiveChudProperty = true;
+                                        }
+                                        else if (properties[keyObj] is int intChud && intChud == 1)
+                                        {
+                                            hasActiveChudProperty = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (hasActiveGemstoneProperty)
+                        {
+                            if (!rig.playerText1.text.Contains(gemstoneGradientTag))
+                            {
+                                rig.playerText1.text += gemstoneGradientTag;
+                            }
+                        }
+                        else
+                        {
+                            if (rig.playerText1.text.Contains(gemstoneGradientTag))
+                            {
+                                rig.playerText1.text = rig.playerText1.text.Replace(gemstoneGradientTag, "").TrimEnd();
+                            }
+                        }
+
+                        if (hasActiveChudProperty)
+                        {
+        
+                            if (!rig.playerText1.text.Contains(chudGradientTag))
+                            {
+                                rig.playerText1.text += chudGradientTag;
+                            }
+                        }
+                        else
+                        {
+                            if (rig.playerText1.text.Contains(chudGradientTag))
+                            {
+                                rig.playerText1.text = rig.playerText1.text.Replace(chudGradientTag, "").TrimEnd();
+                            }
+                        }
+                    }
+                }
+            }
             if (UnityInput.Current.GetKey(KeyCode.Z)) ControllerInputPoller.instance.rightControllerPrimaryButton = true;
             if (UnityInput.Current.GetKey(KeyCode.X)) ControllerInputPoller.instance.rightControllerSecondaryButton = true;
             if (UnityInput.Current.GetKey(KeyCode.C)) ControllerInputPoller.instance.leftControllerPrimaryButton = true;
@@ -289,10 +414,11 @@ namespace Gemstone.Gemstone
 
     $"Welcome To Gemstone Version: {PluginInfo.Version}!" + (PluginInfo.Debug ? "\n\n\n\n\n\n\n\nDEBUG BUILD" : ""),
 
-    $"Welcome to gemstone! This Menu Mas A Few Fun Mods Made Just For You!\n\n\nIf You Get Banned It Is Not I, The Developers Responsibility. \nThere Are: {PluginInfo.Mods} Mods In This Menu.\n\n\nCurrent Room: {roomName}\nPlayers: {playerCount}");
+    $"Welcome to gemstone! This Menu Mas A Few Fun Mods Made Just For You!\n\n\nIf You Get Banned It Is Not I, The Developers Responsibility. \n\n\nCurrent Room: {roomName}\nPlayers: {playerCount}");
 
             if (globalClickCooldown > 0) globalClickCooldown -= Time.deltaTime;
             bool isButtonPressed = ControllerInputPoller.instance.leftControllerSecondaryButton;
+
 
             if (isButtonPressed && !buttonWasPressed)
             {
@@ -312,7 +438,24 @@ namespace Gemstone.Gemstone
 
 
             buttonWasPressed = isButtonPressed;
+
+            if (menuOpen)
+            {
+                bool currentRigState = IsVRRIGEnabled;
+
+                if (menuObj == null || currentRigState != lastRigState)
+                {
+                    DestroyMenu(true);
+                    CreateMenu();
+                }
+
+                lastRigState = currentRigState;
+            }
+
             if (menuObj != null)
+
+                if (menuObj != null)
+                if (menuObj != null)
             {
                 Vector3 parentScale = GTPlayer.Instance.LeftHand.controllerTransform.lossyScale;
 
@@ -327,9 +470,10 @@ namespace Gemstone.Gemstone
         }
         private Player selectedPlayer;
         private bool inPlayerSubmenu;
-
+        public static bool IsVRRIGEnabled => VRRig.LocalRig.enabled != null ? VRRig.LocalRig.enabled : false;
         public void CreateMenu()
         {
+
             var player = GTPlayer.Instance;
             isMenuCreated = true;
 
@@ -342,10 +486,56 @@ namespace Gemstone.Gemstone
                 menuObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 menuObj.transform.localScale = new Vector3(0.03f, 0.21f, 0.45f);
             }
+            if (ModConfig.instance.IsOneHandedMenu.Value)
+            {
+                if (player.headCollider != null)
+                {
 
-            menuObj.transform.parent = player.LeftHand.controllerTransform;
-            menuObj.transform.localPosition = menuForwardOffset;
-            menuObj.transform.localRotation = Quaternion.identity;
+                    float distanceInFront = 0.5f;
+
+                    menuObj.transform.position = player.headCollider.transform.position + (player.headCollider.transform.forward * distanceInFront);
+
+                    menuObj.transform.LookAt(player.headCollider.transform.position);
+
+                    menuObj.transform.Rotate(-90f, 180f, 90f);
+
+                    menuObj.transform.parent = player.headCollider.transform;
+
+                    HandMenuCollider2 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    if (IsVRRIGEnabled)
+                    {
+                        HandMenuCollider2.transform.parent = GorillaTagger.Instance.leftHandTriggerCollider.transform;
+                        HandMenuCollider2.transform.localPosition = Vector3.zero;
+                    }
+                    else
+                    {
+                        HandMenuCollider2.transform.parent = GTPlayer.Instance.LeftHand.controllerTransform.transform;
+                        HandMenuCollider2.transform.localPosition = Vector3.down * 0.094f;
+                    }
+                    HandMenuCollider2.layer = 2;
+                    HandMenuCollider2.transform.localScale = new Vector3(0.008f, 0.008f, 0.008f);
+                    Destroy(HandMenuCollider2.GetComponent<Rigidbody>());
+
+                    if (ModConfig.instance.ShowHandCollider.Value)
+                    {
+                        var rendhand2 = HandMenuCollider2.GetComponent<Renderer>();
+                        rendhand2.material.shader = Shader.Find("GUI/Text Shader");
+                        rendhand2.material.color = Color.white;
+                    }
+                }
+                else
+                {
+                    menuObj.transform.parent = player.LeftHand.controllerTransform;
+                    menuObj.transform.localPosition = menuForwardOffset;
+                    menuObj.transform.localRotation = Quaternion.identity;
+                }
+            }
+            else
+            {
+                menuObj.transform.parent = player.LeftHand.controllerTransform;
+                menuObj.transform.localPosition = menuForwardOffset;
+                menuObj.transform.localRotation = Quaternion.identity;
+            }
 
             Transform backBtn = menuObj.transform.Find("Back");
             Transform forwardBtn = menuObj.transform.Find("Forwards");
@@ -419,8 +609,6 @@ namespace Gemstone.Gemstone
                 };
                 var text = DisconnectObj.transform.Find("TextUnchangable").GetComponent<TextMeshPro>();
                 text.text = Localization.Get("Disconnect");
-
-
             }
             if (HomeObj != null)
             {
@@ -472,8 +660,16 @@ namespace Gemstone.Gemstone
             }
 
             HandMenuCollider = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            HandMenuCollider.transform.parent = player.RightHand.controllerTransform;
-            HandMenuCollider.transform.localPosition = Vector3.down * 0.094f;
+            if (IsVRRIGEnabled)
+            {
+                HandMenuCollider.transform.parent = GorillaTagger.Instance.rightHandTriggerCollider.transform;
+                HandMenuCollider.transform.localPosition = Vector3.zero;
+            }
+            else
+            {
+                HandMenuCollider.transform.parent = GTPlayer.Instance.RightHand.controllerTransform.transform;
+                HandMenuCollider.transform.localPosition = Vector3.down * 0.094f;
+            }
             HandMenuCollider.layer = 2;
             HandMenuCollider.transform.localScale = new Vector3(0.008f, 0.008f, 0.008f);
             Destroy(HandMenuCollider.GetComponent<Rigidbody>());
@@ -481,17 +677,16 @@ namespace Gemstone.Gemstone
             if (ModConfig.instance.ShowHandCollider.Value)
             {
                 var rendhand = HandMenuCollider.GetComponent<Renderer>();
-                rendhand.material.shader = Shader.Find("GorillaTag/UberShader");
+                rendhand.material.shader = Shader.Find("GUI/Text Shader");
                 rendhand.material.color = Color.white;
             }
 
-            float zOffset = 0.06f;
-            float step = 0.05f;
+            float zOffset = 0.005f;
+            float step = 0.004f;
 
             if (currentCategoryIndex == -1)
             {
-                if (IsAdmin) Pages = 3;
-                else Pages = 2;
+                Pages = 3;
                 if (currentPageIndex == 0)
                 {
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Movement"), () => SwitchPage(0, 0)); zOffset -= step;
@@ -508,16 +703,13 @@ namespace Gemstone.Gemstone
                 }
                 else
                 {
-                    if (!IsAdmin) currentPageIndex = 1;
-                    if (IsAdmin)
-                    {
-                        AddButton(zOffset, 0f, 0.2f, Localization.Get("Admin"), () => SwitchPage(8, 0)); zOffset -= step;
-                    }
+                    AddButton(zOffset, 0f, 0.2f, Localization.Get("Sound"), () => SwitchPage(8, 0)); zOffset -= step;
+                    AddButton(zOffset, 0f, 0.2f, Localization.Get("Visual"), () => SwitchPage(9, 0)); zOffset -= step;
+                    if (IsAdmin) AddButton(zOffset, 0f, 0.2f, Localization.Get("Admin"), () => SwitchPage(10, 0)); zOffset -= step;
                 }
             }
             else
             {
-
                 switch (currentCategoryIndex)
                 {
                     case 0:
@@ -543,13 +735,14 @@ namespace Gemstone.Gemstone
                             AddToggleButton(ref zOffset, step, Localization.Get("Tag Gun (D?)"), ModConfig.instance.IsTagGun, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Tag All (D?)"), ModConfig.instance.IsTagAll, () => Mods.Mods.FixRig());
                         }
-                        else
+                        else if (currentPageIndex == 3)
                         {
-                            AddToggleButton(ref zOffset, step, Localization.Get("Box ESP"), ModConfig.instance.IsBoxEsp, () => Mods.Mods.CleanupBoxEsp());
                             AddToggleButton(ref zOffset, step, Localization.Get("WASD Fly"), ModConfig.instance.IsWasdFly);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Movement Recorder"), ModConfig.instance.MovementRecorder);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Movement Recorder (A)"), ModConfig.instance.MovementRecorder);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Fling"), ModConfig.instance.Fling);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Dash (A, LG)"), ModConfig.instance.Dash);
                         }
-                            break;
+                        break;
 
                     case 1:
                         Pages = 2;
@@ -557,7 +750,7 @@ namespace Gemstone.Gemstone
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Get PID Gun"), ModConfig.instance.IsGetPIDGun);
                             AddToggleButton(ref zOffset, step, Localization.Get("Mute Gun"), ModConfig.instance.IsMuteGun);
-                            AddToggleButton(ref zOffset, step, Localization.Get("Mute Others"), ModConfig.instance.IsMuteEveryoneExceptGun);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Mute Others Gun"), ModConfig.instance.IsMuteEveryoneExceptGun);
                             AddToggleButton(ref zOffset, step, Localization.Get("Report Gun"), ModConfig.instance.IsReportGun);
                         }
                         else
@@ -570,7 +763,7 @@ namespace Gemstone.Gemstone
                         break;
 
                     case 2:
-                        Pages = 5;
+                        Pages = 4;
                         if (currentPageIndex == 0)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Ghost Monke (A)"), ModConfig.instance.IsGhostMonke, () => Mods.Mods.FixRig());
@@ -589,21 +782,17 @@ namespace Gemstone.Gemstone
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Recroom Torso"), ModConfig.instance.IsRecroomTorso, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Recroom Rig"), ModConfig.instance.IsRecroomRig, () => Mods.Mods.FixRig());
-                            AddToggleButton(ref zOffset, step, Localization.Get("Realistic Looking"), ModConfig.instance.IsRealisticLooking, () => Mods.Mods.FixRig());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Full Body Tracking"), ModConfig.instance.FullBodyTracking, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Bees"), ModConfig.instance.IsBees, () => { StopCoroutine(beesCoroutine); beesCoroutine = null; Mods.Mods.FixRig(); });
                         }
-                        else if (currentPageIndex == 3)
+                        else
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Copy Rig"), ModConfig.instance.IsCopyRigGun, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Invis Monke"), ModConfig.instance.IsInvisMonke, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Spaz Monke"), ModConfig.instance.IsSpazMonke, () => Mods.Mods.FixRig());
-                            AddToggleButton(ref zOffset, step, Localization.Get("Fake Full Body Tracking"), ModConfig.instance.FakeFBT, () => Mods.Mods.FixRig());
-                        }
-                        else
-                        {
                             AddToggleButton(ref zOffset, step, Localization.Get("Ragdoll (A)"), ModConfig.instance.IsRagdoll, () => Mods.Mods.FixRig());
                         }
-                            break;
+                        break;
 
                     case 3:
                         Pages = 8;
@@ -691,6 +880,7 @@ namespace Gemstone.Gemstone
                             });
                             zOffset -= step;
                             AddToggleButton(ref zOffset, step, Localization.Get("Preview Gun"), ModConfig.instance.PreviewGun);
+                            AddToggleButton(ref zOffset, step, Localization.Get("One Handed Menu"), ModConfig.instance.IsOneHandedMenu);
                         }
                             break;
                     case 4:
@@ -700,11 +890,19 @@ namespace Gemstone.Gemstone
                         AddToggleButton(ref zOffset, step, Localization.Get("Bypass Automod"), ModConfig.instance.IsBypassAutoMod);
                         break;
                     case 5:
-                        Pages = 1;
-                        AddButton(zOffset, 0f, 0.2f, Localization.Get("Unlock all cosmetics (CS)"), () => Mods.Cosmetx.Cosmetx.instance.ActivateCosmetx()); zOffset -= step;
-                        AddButton(zOffset, 0f, 0.2f, Localization.Get("Max Quest Score"), () => Mods.Mods.MaxQuestScore()); zOffset -= step;
-                        AddToggleButton(ref zOffset, step, Localization.Get("Bracelet Spam (LG, RG, D?)"), ModConfig.instance.IsBraceletSpam, () => Mods.Mods.RemoveBracelet());
-                        break;
+                        Pages = 2;
+                        if (currentPageIndex == 0)
+                        {
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("Unlock all cosmetics (CS)"), () => Mods.Cosmetx.Cosmetx.instance.ActivateCosmetx()); zOffset -= step;
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("Max Quest Score"), () => Mods.Mods.MaxQuestScore()); zOffset -= step;
+                            AddToggleButton(ref zOffset, step, Localization.Get("Bracelet Spam (LG, RG, D?)"), ModConfig.instance.IsBraceletSpam, () => Mods.Mods.RemoveBracelet());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Enable Builder Shelf (SS)"), ModConfig.instance.IsEnabledBuilderShelf, () => Mods.Mods.DisableBuilderShelf());
+                        }
+                        else
+                        {
+                            AddToggleButton(ref zOffset, step, Localization.Get("Annoy"), ModConfig.instance.IsAnnoy);
+                        }
+                            break;
                     case 6:
                         {
                             int playersPerPage = 4;
@@ -830,6 +1028,15 @@ namespace Gemstone.Gemstone
                             break;
                         }
                     case 8:
+                        AddToggleButton(ref zOffset, step, Localization.Get("Jman SS"), ModConfig.instance.IsJmanSoundSpam);
+                        AddToggleButton(ref zOffset, step, Localization.Get("Crystal SS"), ModConfig.instance.IsCrystalSoundSpam);
+                        break;
+                    case 9:
+                        AddToggleButton(ref zOffset, step, Localization.Get("Box ESP"), ModConfig.instance.IsBoxEsp, () => Mods.Mods.CleanupBoxEsp());
+                        AddToggleButton(ref zOffset, step, Localization.Get("Skeleton ESP"), ModConfig.instance.IsSkeletonEsp, () => Mods.Mods.DisableSkeletonESP());
+                        AddToggleButton(ref zOffset, step, Localization.Get("Nametags"), ModConfig.instance.IsNametags, () => Mods.Mods.DisableNametagsMod());
+                        break;
+                    case 10:
                         Pages = 6;
                         if (currentPageIndex == 0)
                         {
@@ -870,7 +1077,7 @@ namespace Gemstone.Gemstone
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Big Assets"), ModConfig.instance.IsBigAssets);
                         }
-                            break;
+                        break;
                 }
 
                 float navY = 0.08f;
@@ -886,7 +1093,7 @@ namespace Gemstone.Gemstone
             }
         }
 
-        private string GetCategoryName(int index) => index switch { 0 => Localization.Get("Movement"), 1 => Localization.Get("Utility"), 2 => Localization.Get("Rig Mods"), 3 => Localization.Get("Settings"), 4 => Localization.Get("Important"), 5 => Localization.Get("Fun"), 6 => Localization.Get("Player List"), 7 => Localization.Get("Soundboard"), 8 => Localization.Get("Admin"), _ => Localization.Get("Gemstone") };
+        private string GetCategoryName(int index) => index switch { 0 => Localization.Get("Movement"), 1 => Localization.Get("Utility"), 2 => Localization.Get("Rig Mods"), 3 => Localization.Get("Settings"), 4 => Localization.Get("Important"), 5 => Localization.Get("Fun"), 6 => Localization.Get("Player List"), 7 => Localization.Get("Soundboard"), 8 => Localization.Get("Sound"), 9 => Localization.Get("Visual"), 10 => Localization.Get("Admin"), _ => Localization.Get("Gemstone") };
         private void SwitchPage(int cat, int page) { currentCategoryIndex = cat; currentPageIndex = page; RefreshMenu(); }
         public void RefreshMenu()
         {
@@ -931,6 +1138,11 @@ namespace Gemstone.Gemstone
                 Destroy(HandMenuCollider);
                 HandMenuCollider = null;
             }
+            if (HandMenuCollider2 != null)
+            {
+                Destroy(HandMenuCollider2);
+                HandMenuCollider2 = null;
+            }
 
             foreach (var b in btnObjs)
             {
@@ -938,9 +1150,6 @@ namespace Gemstone.Gemstone
                 {
                     if (!refresh)
                     {
-                        var follow = b.GetComponent<FollowMenu>();
-                        if (follow != null) follow.target = null;
-
                         b.transform.SetParent(null, true);
                         Rigidbody rb = b.GetComponent<Rigidbody>() ?? b.AddComponent<Rigidbody>();
                         rb.isKinematic = false;
@@ -994,8 +1203,9 @@ namespace Gemstone.Gemstone
             }
 
             var f = btn.GetComponent<FollowMenu>() ?? btn.AddComponent<FollowMenu>();
-            f.target = GTPlayer.Instance.LeftHand.controllerTransform;
-            f.position = new Vector3(0.015f, y, z) + menuForwardOffset;
+            // f.target = GTPlayer.Instance.LeftHand.controllerTransform;
+            f.target = menuObj.transform;
+            f.position = new Vector3(0.014f, y, z); // + menuForwardOffset;
             f.rotationOffset = Quaternion.Euler(90f, 0f, 0f);
 
             var renderer = btn.GetComponent<Renderer>();
@@ -1114,16 +1324,29 @@ namespace Gemstone.Gemstone
 
             private void OnTriggerEnter(Collider other)
             {
-                if (other.gameObject != instance.HandMenuCollider)
+                if (other.gameObject != instance.HandMenuCollider && other.gameObject != instance.HandMenuCollider2)
                     return;
 
-                GorillaTagger.Instance.StartVibration(
-                    false,
-                    GorillaTagger.Instance.tagHapticStrength / 2f,
-                    0.05f
-                );
+                if (other.gameObject == instance.HandMenuCollider)
+                {
+                    GorillaTagger.Instance.StartVibration(
+                        false,
+                        GorillaTagger.Instance.tagHapticStrength / 2f,
+                        0.05f
 
-                Press();
+                    );
+                }
+                else
+                {
+                    GorillaTagger.Instance.StartVibration(
+                        true,
+                        GorillaTagger.Instance.tagHapticStrength / 2f,
+                        0.05f
+
+                    );
+                }
+
+                    Press();
             }
         }
     }

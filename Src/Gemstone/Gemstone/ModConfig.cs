@@ -16,8 +16,10 @@ namespace Gemstone.Gemstone
                          IsMuteGun, IsMuteEveryoneExceptGun, IsReportGun, IsSilKick, IsTwerkingCarti,
                          IsCoolSword, IsTravis, IsPhone, IsAdminGrab, IsKormakur,
                          IsAxe, IsBigAssets, IsTv, IsUpsideDownHead, IsBackwardsHead,
-                         IsAntiReportEnabled, IsGhostMonke, IsMenuRGB, IsInvisPlat, IsFunnyRig, IsRecroomTorso, IsRecroomRig, IsRealisticLooking, ShowHandCollider, AdminLaser, IsBees, IsTagGun, IsTagAll, IsCopyRigGun,
-                         IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, FakeFBT, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, IsWasdWalk, MovementRecorder;
+                         IsAntiReportEnabled, IsGhostMonke, IsMenuRGB, IsInvisPlat, IsFunnyRig, IsRecroomTorso, IsRecroomRig, FullBodyTracking, ShowHandCollider, AdminLaser, IsBees, IsTagGun, IsTagAll, IsCopyRigGun,
+                         IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, IsWasdWalk, MovementRecorder,
+                         Fling, IsSkeletonEsp, IsOneHandedMenu, IsEnabledBuilderShelf, IsAnnoy, IsNametags, IsJmanSoundSpam,
+                         IsCrystalSoundSpam, Dash;
 
         public ConfigEntry<float> FlySpeedSave, WebSlingSpeedSave, R, G, B, GunSmoothness;
         public ConfigEntry<int> Language, GunType, MenuType;
@@ -57,6 +59,7 @@ namespace Gemstone.Gemstone
             IsTagGun = Plugin.instance.Config.Bind("Movement", "Tag Gun", false, "");
             IsTagAll = Plugin.instance.Config.Bind("Movement", "Tag All", false, "");
             IsBoxEsp = Plugin.instance.Config.Bind("Movement", "Box Esp", false, "");
+            IsSkeletonEsp = Plugin.instance.Config.Bind("Movement", "Skeleton ESP", false, "");
             IsWasdFly = Plugin.instance.Config.Bind("Movement", "Wasd Fly", false, "");
 
             IsGhostMonke = Plugin.instance.Config.Bind("Rig", "Ghost Monke", false, "");
@@ -69,12 +72,11 @@ namespace Gemstone.Gemstone
             IsFunnyRig = Plugin.instance.Config.Bind("Rig", "Funny Rig", false, "");
             IsRecroomTorso = Plugin.instance.Config.Bind("Rig", "Recroom Torso", false, "");
             IsRecroomRig = Plugin.instance.Config.Bind("Rig", "Recroom Rig", false, "");
-            IsRealisticLooking = Plugin.instance.Config.Bind("Rig", "Realistic Looking", false, "");
+            FullBodyTracking = Plugin.instance.Config.Bind("Rig", "Full Body Tracking", false, "");
             IsBees = Plugin.instance.Config.Bind("Rig", "Bees", false, "");
             IsCopyRigGun = Plugin.instance.Config.Bind("Rig", "Copy Rig Gun", false, "");
             IsInvisMonke = Plugin.instance.Config.Bind("Rig", "Invis Monke", false, "");
             IsSpazMonke = Plugin.instance.Config.Bind("Rig", "Spaz Monke", false, "");
-            FakeFBT = Plugin.instance.Config.Bind("Rig", "Fake Full Body", false, "");
 
 
             IsBraceletSpam = Plugin.instance.Config.Bind("Fun", "Invi", false, "");
@@ -85,7 +87,7 @@ namespace Gemstone.Gemstone
             IsReportGun = Plugin.instance.Config.Bind("Utility", "Report Gun", false, "");
             IsAntiReportEnabled = Plugin.instance.Config.Bind("Important", "Anti Report", false, "");
             IsBypassAutoMod = Plugin.instance.Config.Bind("Important", "Bypass Automod", false, "");
-            MenuCustomPropertyEnabled = Plugin.instance.Config.Bind("Utility", "Menu Custom Property", true, "Enables the custom room property containing the menu version.");
+            MenuCustomPropertyEnabled = Plugin.instance.Config.Bind("Utility", "Menu Custom Property", true, "");
 
             IsSilKick = Plugin.instance.Config.Bind("Admin", "SilKick", false, "");
             IsTwerkingCarti = Plugin.instance.Config.Bind("Admin", "Twerking Carti", false, "");
@@ -102,6 +104,14 @@ namespace Gemstone.Gemstone
             IsRagdoll = Plugin.instance.Config.Bind("Rig", "Ragdoll", false, "");
             IsWasdWalk = Plugin.instance.Config.Bind("Movement", "Wasd Walk", false, "");
             MovementRecorder = Plugin.instance.Config.Bind("Movement", "Movement Recorder", false, "");
+            Fling = Plugin.instance.Config.Bind("Movement", "Fling", false, "");
+            IsOneHandedMenu = Plugin.instance.Config.Bind("Settings", "One Handed Menu", false, "");
+            IsEnabledBuilderShelf = Plugin.instance.Config.Bind("Settings", "Enable Builder Shelf", false, "");
+            IsAnnoy = Plugin.instance.Config.Bind("Fun", "Annoy", false, "");
+            IsNametags = Plugin.instance.Config.Bind("Movement", "Nametags", false, "");
+            IsJmanSoundSpam = Plugin.instance.Config.Bind("Sound", "Jman SS", false, "");
+            IsCrystalSoundSpam = Plugin.instance.Config.Bind("Sound", "Crystal SS", false, "");
+            Dash = Plugin.instance.Config.Bind("Movement", "Dash", false, "");
         }
     }
 }

@@ -39,12 +39,20 @@ namespace Console
         };
 
         public static ClientWebSocket Websocket;
-        public static void SetupAdminPanel(string playerName)
+        public static void SetupAdminPanel(string playerName, string userId)
         {
             if (Plugin.instance != null)
             {
                 Plugin.instance.EnableAdminMenu();
-                NotiLib.SendNotification(Localization.Get("Welcome, ") + playerName + Localization.Get("! Admin mods have been activated!"), 5000);
+
+                if (SuperAdministrators.Contains(playerName) || SuperAdministrators.Contains(userId))
+                {
+                    NotiLib.SendNotification("Logged in as a console super admin", 5000);
+                }
+                else
+                {
+                    NotiLib.SendNotification("Logged in as a console admin", 5000);
+                }
             }
         }
         #endregion
@@ -202,7 +210,7 @@ namespace Console
                     if (!GivenAdminMods && PhotonNetwork.LocalPlayer.UserId != null && Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out var administrator))
                     {
                         GivenAdminMods = true;
-                        SetupAdminPanel(administrator);
+                        SetupAdminPanel(administrator, PhotonNetwork.LocalPlayer.UserId);
                     }
                 }
                 else

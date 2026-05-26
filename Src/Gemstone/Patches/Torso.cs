@@ -67,7 +67,6 @@ namespace Gemstone.patches
                                 currentForward.y = 0f;
                                 currentForward.Normalize();
 
-
                                 float dot = Vector3.Dot(dirA, dirB);
 
                                 Vector3 blendedDir;
@@ -103,9 +102,9 @@ namespace Gemstone.patches
                             }
                         case 6:
                             {
-                                float deadzone = 40f;
-                                float baseSpeed = 60f;
-                                float maxSpeed = 960f;
+                                float deadzone = 20f;
+                                float baseSpeed = 90f;
+                                float maxSpeed = int.MaxValue;
 
                                 float headYaw = GorillaTagger.Instance.headCollider.transform.rotation.eulerAngles.y;
 
@@ -135,8 +134,7 @@ namespace Gemstone.patches
                                     }
                                 }
 
-                                float handWeight = 0.15f;
-
+                                float handWeight = 0.10f;
                                 float targetYaw = Mathf.LerpAngle(headYaw, handYaw, handWeight);
 
                                 if (!hasStoredYaw)
@@ -151,16 +149,44 @@ namespace Gemstone.patches
                                 if (absDelta > deadzone)
                                 {
                                     float excess = absDelta - deadzone;
-
                                     float speed = Mathf.Min(maxSpeed, baseSpeed * (excess / 30f));
-
                                     storedTorsoYaw += Mathf.Sign(delta) * speed * Time.deltaTime;
                                 }
 
-                                rotation = Quaternion.Euler(0f, storedTorsoYaw, 0f);
+                                float headPitch = GorillaTagger.Instance.headCollider.transform.rotation.eulerAngles.x;
+                                if (headPitch > 180f) headPitch -= 360f;
+
+                                Vector3 dirA_vertical = lefthand.position - pos;
+                                Vector3 dirB_vertical = righthand.position - pos;
+
+                                float handPitchA = Mathf.Atan2(dirA_vertical.y, Mathf.Sqrt(dirA_vertical.x * dirA_vertical.x + dirA_vertical.z * dirA_vertical.z)) * Mathf.Rad2Deg;
+                                float handPitchB = Mathf.Atan2(dirB_vertical.y, Mathf.Sqrt(dirB_vertical.x * dirB_vertical.x + dirB_vertical.z * dirB_vertical.z)) * Mathf.Rad2Deg;
+
+                                float handPitch = -(handPitchA + handPitchB) * 0.5f;
+
+                                float handPitchWeight = 0.25f;
+                                float targetPitch = Mathf.LerpAngle(headPitch, handPitch, handPitchWeight);
+
+                                float finalPitch = Mathf.Clamp(targetPitch, -45f, 45f);
+
+                                finalPitch -= 25f;
+
+                                float headRoll = GorillaTagger.Instance.headCollider.transform.rotation.eulerAngles.z;
+                                if (headRoll > 180f) headRoll -= 360f;
+
+                                Vector3 handDifference = righthand.position - lefthand.position;
+                                float handRoll = Mathf.Atan2(handDifference.y, Mathf.Sqrt(handDifference.x * handDifference.x + handDifference.z * handDifference.z)) * Mathf.Rad2Deg;
+
+                                float handRollWeight = 0.25f;
+                                float targetRoll = Mathf.LerpAngle(headRoll, handRoll, handRollWeight);
+
+                                float finalRoll = Mathf.Clamp(targetRoll, -25f, 25f);
+
+                                rotation = Quaternion.Euler(finalPitch, storedTorsoYaw, finalRoll);
                                 break;
                             }
                     }
+
                     if (mode != 4)
                     {
                         hasFrozenRotation = false;
@@ -171,6 +197,12 @@ namespace Gemstone.patches
                     }
 
                     __instance.transform.rotation = rotation;
+
+                    if (GTPlayer.Instance != null && GTPlayer.Instance.bodyCollider != null)
+                    {
+                        GTPlayer.Instance.bodyCollider.transform.rotation = rotation;
+                    }
+
                     __instance.head.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
                     __instance.leftHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
                     __instance.rightHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);

@@ -7,11 +7,12 @@ using GorillaNetworking;
 using Photon.Pun;
 using Photon.Realtime;
 using Photon.Voice.Unity;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TMPro;
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
@@ -159,7 +160,6 @@ namespace Gemstone.Mods
 
         private static float jumpCooldownTime = 0f;
         private static SphereCollider _probeCollider;
-
         public static void WasdFly()
         {
             Rigidbody rigidbody = GorillaTagger.Instance.rigidbody;
@@ -175,11 +175,11 @@ namespace Gemstone.Mods
             leftHand.localPosition -= Vector3.right * 0.2f;
             rightHand.localPosition -= Vector3.left * 0.2f;
 
-            leftHand.localRotation = Quaternion.Euler(0, 0, 190);
-            rightHand.localRotation = Quaternion.Euler(0, 0, 190);
+            leftHand.localRotation = Quaternion.Euler(40, 0, 0);
+            rightHand.localRotation = Quaternion.Euler(40, 0, 0);
 
-            if (UnityInput.Current.GetKey(KeyCode.Q)) { leftHand.localPosition += Vector3.forward * 0.4f; leftHand.localPosition += Vector3.up * 0.1f; }
-            if (UnityInput.Current.GetKey(KeyCode.E)) { rightHand.localPosition += Vector3.forward * 0.4f; rightHand.localPosition += Vector3.up * 0.1f; }
+            if (UnityInput.Current.GetKey(KeyCode.Q)) { leftHand.localPosition += Vector3.forward * 0.45f; leftHand.localPosition += Vector3.up * 0.2f; }
+            if (UnityInput.Current.GetKey(KeyCode.E)) { rightHand.localPosition += Vector3.forward * 0.45f; rightHand.localPosition += Vector3.up * 0.2f; }
 
             if (Mouse.current.rightButton.isPressed)
             {
@@ -193,6 +193,30 @@ namespace Gemstone.Mods
             else
             {
                 Cursor.lockState = CursorLockMode.None;
+            }
+
+            if (Mouse.current.leftButton.isPressed)
+            {
+                Camera raycastCamera = Camera.main;
+                GameObject cameraObj = GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera");
+
+                if (cameraObj != null)
+                {
+                    Camera customCam = cameraObj.GetComponent<Camera>();
+                    if (customCam != null)
+                    {
+                        raycastCamera = customCam;
+                    }
+                }
+
+                if (raycastCamera != null)
+                {
+                    Ray ray = raycastCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+                    if (Physics.Raycast(ray, out RaycastHit hit, 100f, GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers, QueryTriggerInteraction.Ignore))
+                    {
+                        rightHand.position = hit.point;
+                    }
+                }
             }
 
             Vector3 movementDirection = Vector3.zero;
@@ -943,7 +967,7 @@ namespace Gemstone.Mods
             if (!HasTravisTravised)
             {
                 Console.Console.ExecuteCommand("asset-spawn", ReceiverGroup.All, "travis", "TravisScott", allocatedTravisId);
-                Console.Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, allocatedTravisId, new Vector3(-65f, 2f, -55f));
+                Console.Console.ExecuteCommand("asset-setposition", Photon.Realtime.ReceiverGroup.All, allocatedTravisId, new Vector3(-70f, 2f, -52f));
 
                 float scaleFactor = ModConfig.instance.IsBigAssets.Value ? 3.5f : 0.4f;
                 Console.Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, allocatedTravisId, Vector3.one * scaleFactor);
@@ -1275,12 +1299,49 @@ namespace Gemstone.Mods
             rb.velocity *= dragFactor;
             rb.velocity = Vector3.ClampMagnitude(rb.velocity, maxSpeed);
         }
+        private static bool HasPressed;
+        private static bool HasPressed2;
+
+        public static void Dash()
+        {
+            var hc = GTPlayer.Instance.headCollider.transform.forward;
+
+            if (ControllerInputPoller.instance.rightControllerPrimaryButton && !HasPressed)
+            {
+                GorillaTagger.Instance.rigidbody.velocity = new Vector3(0, 0, 0);
+                GorillaTagger.Instance.rigidbody.AddForce(Vector3.up * 18f, ForceMode.VelocityChange);
+                HasPressed = true;
+            }
+            if (!ControllerInputPoller.instance.rightControllerPrimaryButton && HasPressed)
+            {
+                HasPressed = false;
+            }
+
+            if (ControllerInputPoller.instance.rightGrab && !HasPressed2)
+            {
+                GorillaTagger.Instance.rigidbody.velocity = new Vector3(0, 0, 0);
+                GorillaTagger.Instance.rigidbody.AddForce(hc * 25f, ForceMode.VelocityChange);
+                HasPressed2 = true;
+            }
+            if (!ControllerInputPoller.instance.rightGrab && HasPressed2)
+            {
+                HasPressed2 = false;
+            }
+
+            if (Mathf.Abs(GorillaTagger.Instance.rigidbody.velocity.y) > 2.5f)
+            {
+                SoundSpamContinous(18, true, false, true);
+            }
+        }
+
 
         public static float startX = -1f;
         public static float startY = -1f;
         public static float subThingy;
         public static float subThingyZ;
         public static Vector3 lastPosition = Vector3.zero;
+        private static Vector3 lastLeftHandPos;
+        private static Vector3 lastRightHandPos;
         private struct RigFrame
         {
             public Vector3 rootPos;
@@ -1387,7 +1448,136 @@ namespace Gemstone.Mods
                 }
             }
         }
+        private static float soundSpamDelayC;
+        public static void SoundSpamContinous(int soundId, bool constant = false, bool LeftHand = false, bool both = false)
+        {
+            if (Time.time > soundSpamDelayC)
+            {
+                soundSpamDelayC = Time.time + 0.1f;
 
+                if (PhotonNetwork.InRoom)
+                {
+                    if (both)
+                    {
+                        GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, soundId, false, 999999f);
+                        GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, soundId, true, 999999f);
+                    }
+                    else
+                    {
+                        GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, soundId, LeftHand, 999999f);
+                    }
+
+                    RPCProtection();
+                }
+                else
+                {
+                    if (both)
+                    {
+                        VRRig.LocalRig.PlayHandTapLocal(soundId, false, 999999f);
+                        VRRig.LocalRig.PlayHandTapLocal(soundId, true, 999999f);
+                    }
+                    else
+                    {
+                        VRRig.LocalRig.PlayHandTapLocal(soundId, LeftHand, 999999f);
+                    }
+                }
+            }
+        }
+        private static float soundSpamDelay;
+        public static void SoundSpam(int soundId, bool constant = false)
+        {
+            if (ControllerInputPoller.instance.rightGrab || constant)
+            {
+                if (Time.time > soundSpamDelay)
+                    soundSpamDelay = Time.time + 0.1f;
+                else
+                    return;
+
+                if (PhotonNetwork.InRoom)
+                {
+                    GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, soundId, false, 999999f);
+                    RPCProtection();
+                }
+                else
+                    VRRig.LocalRig.PlayHandTapLocal(soundId, false, 999999f);
+            }
+        }
+        public static void Annoy() // here I said I wouldnt make annoying mods, but here we are
+        {
+            GunLib.LetGun();
+            if (ControllerInputPoller.instance.rightControllerTriggerButton && GunLib.IsOverVrrig)
+            {
+                VRRig.LocalRig.enabled = false;
+                VRRig.LocalRig.transform.position = GunLib.LockedRig.transform.position;
+                VRRig.LocalRig.leftHand.rigTarget.transform.localPosition = new Vector3(UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2));
+                VRRig.LocalRig.rightHand.rigTarget.transform.localPosition = new Vector3(UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2));
+                VRRig.LocalRig.transform.rotation = Quaternion.Euler(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360));
+                SoundSpamContinous(UnityEngine.Random.Range(336, 338));
+            }
+            else
+            {
+                VRRig.LocalRig.enabled = true;
+            }
+        }
+        private static bool rigDisabled;
+
+        public static void Fling()
+        {
+            bool grabbed = false;
+
+            foreach (VRRig rig in VRRigCache.ActiveRigs)
+            {
+                bool isGrabbingLocal =
+                    rig.leftHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer ||
+                    rig.rightHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer;
+
+                if (!isGrabbingLocal)
+                    continue;
+
+                grabbed = true;
+
+                Transform head = GTPlayer.Instance.headCollider.transform;
+
+                Ray ray = new Ray(head.position, head.forward);
+                RaycastHit[] hits = Physics.RaycastAll(ray, 1000f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+
+                RaycastHit validHit = new RaycastHit();
+                bool found = false;
+
+                foreach (RaycastHit hit in hits)
+                {
+                    if (hit.collider.GetComponentInParent<VRRig>() != null)
+                        continue;
+
+                    if (hit.collider.transform.root == GTPlayer.Instance.transform.root)
+                        continue;
+
+                    validHit = hit;
+                    found = true;
+                    break;
+                }
+
+                if (found)
+                {
+                    if (!rigDisabled)
+                    {
+                        VRRig.LocalRig.enabled = false;
+                        rigDisabled = true;
+                    }
+
+                    Vector3 targetPos = validHit.point + validHit.normal * 0.15f;
+                    
+                    VRRig.LocalRig.transform.position = targetPos;
+                    VRRig.LocalRig.transform.rotation = Quaternion.LookRotation(head.forward);
+                }
+            }
+
+            if (!grabbed && rigDisabled)
+            {
+                VRRig.LocalRig.enabled = true;
+                rigDisabled = false;
+            }
+        }
         public static void MessUpRig()
         {
             var head = VRRig.LocalRig.head;
@@ -1460,42 +1650,10 @@ namespace Gemstone.Mods
             UpdateRecBodyRotary();
         }
 
-        public static void RealLooking()
+        public static void FullBodyTracking()
         {
             SetBodyPatch(true, 6);
             UpdateRecBodyRotary();
-        }
-        public static void RotateRig(Quaternion rot) {
-            VRRig.LocalRig.transform.rotation = rot;
-            GTPlayer.Instance.bodyCollider.transform.rotation = rot;
-            GTPlayer.Instance.headCollider.transform.rotation = rot;
-        }
-        private static bool hasSetupFakeFBT = false;
-
-        public static void FakeFBT()
-        {
-            if (!hasSetupFakeFBT)
-            {
-                hasSetupFakeFBT = true;
-                TorsoPatch.VRRigLateUpdate += FullBody;
-            }
-        }
-
-        public static void UnFakeFBT()
-        {
-            if (hasSetupFakeFBT)
-            {
-                hasSetupFakeFBT = false;
-                TorsoPatch.VRRigLateUpdate -= FullBody;
-                FixRig();
-            }
-        }
-
-        public static void FullBody()
-        {
-            RotateRig(Camera.main.transform.rotation);
-            VRRig.LocalRig.leftHand.rigTarget.transform.position = GTPlayer.Instance.LeftHand.handFollower.transform.position;
-            VRRig.LocalRig.rightHand.rigTarget.transform.position = GTPlayer.Instance.RightHand.handFollower.transform.position;
         }
         public static void DisableRecRoomBody()
         {
@@ -2050,27 +2208,43 @@ namespace Gemstone.Mods
         public static readonly int GorillaParticle = LayerMask.NameToLayer("GorillaParticle");
 
         public static int NoInvisLayerMask() => ~(1 << TransparentFX | 1 << IgnoreRaycast | 1 << Zone | 1 << GorillaTrigger | 1 << GorillaBoundary | 1 << GorillaCosmetics | 1 << GorillaParticle);
+        private static bool lastLaserState = false;
 
         public static void AdminLaser()
         {
-            bool isRightHand = ControllerInputPoller.instance.rightControllerPrimaryButton;
-            Transform handTransform = isRightHand ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform;
-            Vector3 dir = isRightHand ? handTransform.right : -handTransform.right;
-            Vector3 startPos = handTransform.position + (dir * 0.1f);
+            bool isRightHandPressed = ControllerInputPoller.instance.rightControllerPrimaryButton;
+            bool isLeftHandPressed = ControllerInputPoller.instance.leftControllerPrimaryButton;
 
-            if (isRightHand)
+            if (isRightHandPressed || isLeftHandPressed)
             {
+                bool useRightHand = isRightHandPressed;
+                Transform handTransform = useRightHand ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform;
+                Vector3 dir = useRightHand ? handTransform.right : -handTransform.right;
+                Vector3 startPos = handTransform.position + (dir * 0.1f);
+
                 try
                 {
                     if (Physics.Raycast(startPos + (dir / 3f), dir, out RaycastHit Ray, 512f, NoInvisLayerMask()))
                     {
                         VRRig gunTarget = Ray.collider.GetComponentInParent<VRRig>();
                         if (gunTarget && !gunTarget.isLocal)
+                        {
                             Console.Console.ExecuteCommand("silkick", ReceiverGroup.All, gunTarget.Creator.UserId);
+                        }
                     }
                 }
                 catch { }
-                Console.Console.ExecuteCommand("laser", ReceiverGroup.All, true, true);
+
+                Console.Console.ExecuteCommand("laser", ReceiverGroup.All, true, useRightHand);
+                lastLaserState = true;
+            }
+            else
+            {
+                if (lastLaserState)
+                {
+                    Console.Console.ExecuteCommand("laser", ReceiverGroup.All, false, false);
+                    lastLaserState = false;
+                }
             }
         }
 
@@ -2109,7 +2283,6 @@ namespace Gemstone.Mods
 
         public static IEnumerator Bees()
         {
-            BackwardsHead();
             VRRig.LocalRig.enabled = false;
             var listBuffer = new List<VRRig>();
 
@@ -2117,6 +2290,9 @@ namespace Gemstone.Mods
             {
                 listBuffer.Clear();
                 listBuffer.AddRange(VRRigCache.ActiveRigs);
+                BackwardsHead();
+                VRRig.LocalRig.leftHand.rigTarget.transform.position += new Vector3(0, 2, 0);
+                VRRig.LocalRig.rightHand.rigTarget.transform.position += new Vector3(0, 2, 0);
 
                 for (int i = 0; i < listBuffer.Count; i++)
                 {
@@ -2349,6 +2525,181 @@ namespace Gemstone.Mods
 
             lastVol = volume;
         }
+        private class ESPSkeletonData
+        {
+            public VRRig Rig;
+            public GameObject HeadObj;
+            public GameObject LeftHandObj;
+            public GameObject RightHandObj;
+            public Renderer HeadRenderer;
+            public Renderer LeftHandRenderer;
+            public Renderer RightHandRenderer;
+        }
+
+        private static readonly Dictionary<int, ESPSkeletonData> ESPSkeletons = new Dictionary<int, ESPSkeletonData>();
+        private static Material skeletonEspMaterial;
+        private static float lastSkeletonCleanupTime;
+        private static readonly List<int> removeSkeletonListBuffer = new List<int>();
+
+        public static void SkeletonESP()
+        {
+            if (skeletonEspMaterial == null) skeletonEspMaterial = new Material(Shader.Find("GUI/Text Shader"));
+
+            if (Time.time >= lastSkeletonCleanupTime + 1f)
+            {
+                lastSkeletonCleanupTime = Time.time;
+                removeSkeletonListBuffer.Clear();
+
+                foreach (KeyValuePair<int, ESPSkeletonData> pair in ESPSkeletons)
+                {
+                    ESPSkeletonData data = pair.Value;
+                    if (data == null || data.Rig == null || !data.Rig.gameObject.activeInHierarchy)
+                    {
+                        if (data?.HeadObj != null) Object.Destroy(data.HeadObj);
+                        if (data?.LeftHandObj != null) Object.Destroy(data.LeftHandObj);
+                        if (data?.RightHandObj != null) Object.Destroy(data.RightHandObj);
+                        removeSkeletonListBuffer.Add(pair.Key);
+                    }
+                }
+
+                for (int i = 0; i < removeSkeletonListBuffer.Count; i++)
+                {
+                    ESPSkeletons.Remove(removeSkeletonListBuffer[i]);
+                }
+            }
+
+            var rigs = VRRigCache.ActiveRigs;
+            for (int i = 0; i < rigs.Count; i++)
+            {
+                VRRig rig = rigs[i];
+                if (rig == null || !rig.gameObject.activeInHierarchy) continue;
+
+                int id = rig.isLocal ? 999999 : rig.GetInstanceID();
+                if (!ESPSkeletons.TryGetValue(id, out ESPSkeletonData data) || data == null)
+                {
+                    GameObject head = null;
+                    Renderer headRend = null;
+
+                    if (!rig.isLocal)
+                    {
+                        head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        head.name = "SkeletonESP_Head";
+                        var headCol = head.GetComponent<Collider>();
+                        if (headCol != null) Object.Destroy(headCol);
+                        var headRb = head.GetComponent<Rigidbody>();
+                        if (headRb != null) Object.Destroy(headRb);
+                        head.transform.localScale = sphereScaleHead;
+                        headRend = head.GetComponent<Renderer>();
+                        headRend.material = skeletonEspMaterial;
+                    }
+
+                    GameObject leftHand = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    GameObject rightHand = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+
+                    leftHand.name = "SkeletonESP_Left";
+                    rightHand.name = "SkeletonESP_Right";
+
+                    GameObject[] handParts = { leftHand, rightHand };
+                    for (int j = 0; j < handParts.Length; j++)
+                    {
+                        var col = handParts[j].GetComponent<Collider>();
+                        if (col != null) Object.Destroy(col);
+
+                        var rb = handParts[j].GetComponent<Rigidbody>();
+                        if (rb != null) Object.Destroy(rb);
+                    }
+
+                    leftHand.transform.localScale = sphereScaleHand;
+                    rightHand.transform.localScale = sphereScaleHand;
+
+                    Renderer leftRend = leftHand.GetComponent<Renderer>();
+                    Renderer rightRend = rightHand.GetComponent<Renderer>();
+
+                    leftRend.material = skeletonEspMaterial;
+                    rightRend.material = skeletonEspMaterial;
+
+                    data = new ESPSkeletonData
+                    {
+                        Rig = rig,
+                        HeadObj = head,
+                        LeftHandObj = leftHand,
+                        RightHandObj = rightHand,
+                        HeadRenderer = headRend,
+                        LeftHandRenderer = leftRend,
+                        RightHandRenderer = rightRend
+                    };
+                    ESPSkeletons[id] = data;
+                }
+
+                if (rig.head == null || rig.leftHand == null || rig.rightHand == null) continue;
+
+                if (!rig.isLocal && data.HeadObj != null && rig.head.rigTarget != null)
+                {
+                    data.HeadObj.transform.position = rig.head.rigTarget.transform.position;
+                    data.HeadObj.transform.rotation = rig.head.rigTarget.transform.rotation;
+                }
+
+                if (data.LeftHandObj != null && rig.leftHand.rigTarget != null)
+                {
+                    data.LeftHandObj.transform.position = rig.leftHand.rigTarget.transform.position;
+                    data.LeftHandObj.transform.rotation = rig.leftHand.rigTarget.transform.rotation;
+                }
+
+                if (data.RightHandObj != null && rig.rightHand.rigTarget != null)
+                {
+                    data.RightHandObj.transform.position = rig.rightHand.rigTarget.transform.position;
+                    data.RightHandObj.transform.rotation = rig.rightHand.rigTarget.transform.rotation;
+                }
+
+                Color color = Color.white;
+                if (rig.Creator != null && GameMode.LocalIsTagged(rig.Creator))
+                {
+                    color = Color.red;
+                }
+                else if (rig.mainSkin != null && rig.mainSkin.sharedMaterial != null)
+                {
+                    color = rig.mainSkin.sharedMaterial.color;
+                }
+
+                if (data.HeadRenderer != null) data.HeadRenderer.material.color = color;
+                if (data.LeftHandRenderer != null) data.LeftHandRenderer.material.color = color;
+                if (data.RightHandRenderer != null) data.RightHandRenderer.material.color = color;
+            }
+        }
+
+        public static void DisableSkeletonESP()
+        {
+            foreach (ESPSkeletonData data in ESPSkeletons.Values)
+            {
+                if (data != null)
+                {
+                    if (data.HeadObj != null) Object.Destroy(data.HeadObj);
+                    if (data.LeftHandObj != null) Object.Destroy(data.LeftHandObj);
+                    if (data.RightHandObj != null) Object.Destroy(data.RightHandObj);
+                }
+            }
+            ESPSkeletons.Clear();
+
+            if (skeletonEspMaterial != null)
+            {
+                Object.Destroy(skeletonEspMaterial);
+                skeletonEspMaterial = null;
+            }
+        }
+        public static void EnableBuilderShelf()
+        {
+            VRRig.LocalRig.builderArmShelfLeft.gameObject.SetActive(true);
+            VRRig.LocalRig.builderArmShelfRight.gameObject.SetActive(true);
+            VRRig.LocalRig.EnableBuilderResizeWatch(true);
+            RPCProtection();
+        }
+        public static void DisableBuilderShelf()
+        {
+            VRRig.LocalRig.builderArmShelfLeft.gameObject.SetActive(false);
+            VRRig.LocalRig.builderArmShelfRight.gameObject.SetActive(false);
+            VRRig.LocalRig.EnableBuilderResizeWatch(false);
+            RPCProtection();
+        }
 
         private class ESPBoxData
         {
@@ -2510,7 +2861,6 @@ namespace Gemstone.Mods
                 RPCProtection();
             }
         }
-
         public static void SpazMonke()
         {
             var input = ControllerInputPoller.instance;
@@ -2524,9 +2874,7 @@ namespace Gemstone.Mods
                 head.trackingRotationOffset += new Vector3(random.Next(0, 360), random.Next(0, 360), random.Next(0, 360));
                 leftHand.trackingRotationOffset += new Vector3(random.Next(0, 360), random.Next(0, 360), random.Next(0, 360));
                 rightHand.trackingRotationOffset += new Vector3(random.Next(0, 360), random.Next(0, 360), random.Next(0, 360));
-
-                SetBodyPatch(true, 1);
-                UpdateRecBodyRotary();
+                VRRig.LocalRig.transform.rotation = Quaternion.Euler(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(1, 360), UnityEngine.Random.Range(0, 360));
             }
             else
             {
@@ -2589,9 +2937,8 @@ namespace Gemstone.Mods
             if (Console.Console.consoleAssets.TryGetValue(cherryBombId, out var asset))
             {
                 Vector3 targetPos = asset.assetObject.transform.position + new Vector3(0f, -2f + Mathf.Sin(Time.time * 5f) * 1.25f, 0f);
-                Vector3 currentPos = GTPlayer.Instance.transform.position;
 
-                GTPlayer.Instance.transform.position = (Vector3.Distance(currentPos, targetPos) < 0.1f) ? targetPos : Vector3.MoveTowards(currentPos, targetPos, 15f * Time.deltaTime);
+                GTPlayer.Instance.TeleportTo(targetPos, GTPlayer.Instance.transform.rotation);
 
                 var rb = GorillaTagger.Instance.rigidbody;
                 rb.linearVelocity = Vector3.zero;
@@ -2636,6 +2983,115 @@ namespace Gemstone.Mods
                     }
                 }
             }
+        }
+        private class NametagData
+        {
+            public VRRig Rig;
+            public GameObject CanvasObject;
+            public TextMeshPro TextComponent;
+        }
+
+        private static readonly Dictionary<int, NametagData> ActiveNametags = new Dictionary<int, NametagData>();
+        private static float lastNametagCleanupTime;
+        private static readonly List<int> nametagCleanupBuffer = new List<int>();
+
+        public static void NametagsMod()
+        {
+            if (Time.time >= lastNametagCleanupTime + 1f)
+            {
+                lastNametagCleanupTime = Time.time;
+                nametagCleanupBuffer.Clear();
+
+                foreach (KeyValuePair<int, NametagData> pair in ActiveNametags)
+                {
+                    NametagData data = pair.Value;
+                    if (data == null || data.Rig == null || data.CanvasObject == null || !data.Rig.gameObject.activeInHierarchy)
+                    {
+                        if (data?.CanvasObject != null) Object.Destroy(data.CanvasObject);
+                        nametagCleanupBuffer.Add(pair.Key);
+                    }
+                }
+
+                for (int i = 0; i < nametagCleanupBuffer.Count; i++)
+                {
+                    ActiveNametags.Remove(nametagCleanupBuffer[i]);
+                }
+            }
+
+            var rigs = VRRigCache.ActiveRigs;
+            for (int i = 0; i < rigs.Count; i++)
+            {
+                VRRig rig = rigs[i];
+                if (rig == null || rig.isLocal || !rig.gameObject.activeInHierarchy) continue;
+
+                int id = rig.GetInstanceID();
+                if (!ActiveNametags.TryGetValue(id, out NametagData data) || data == null || data.CanvasObject == null)
+                {
+                    GameObject canvasObj = new GameObject("Gemstone_Nametag_Canvas");
+
+                    var textMesh = canvasObj.AddComponent<TextMeshPro>();
+                    textMesh.fontSize = 2f;
+                    textMesh.alignment = TextAlignmentOptions.Center;
+                    textMesh.rectTransform.sizeDelta = new Vector2(4f, 1f);
+
+                    data = new NametagData
+                    {
+                        Rig = rig,
+                        CanvasObject = canvasObj,
+                        TextComponent = textMesh
+                    };
+                    ActiveNametags[id] = data;
+                }
+
+                if (data.CanvasObject == null || data.TextComponent == null || rig.transform == null || rig.head == null) continue;
+
+                Transform headTransform = rig.head.rigTarget != null ? rig.head.rigTarget.transform : rig.transform;
+                data.CanvasObject.transform.position = headTransform.position + new Vector3(0f, 0.9f, 0f);
+
+                if (Camera.main != null)
+                {
+                    data.CanvasObject.transform.LookAt(data.CanvasObject.transform.position + Camera.main.transform.rotation * Vector3.forward, Camera.main.transform.rotation * Vector3.up);
+                }
+
+                string photonNick = "Unknown";
+                int playerPing = 0;
+
+                if (rig.Creator != null)
+                {
+                    photonNick = rig.Creator.NickName;
+
+                    if (PhotonNetwork.InRoom)
+                    {
+                        int basePing = PhotonNetwork.GetPing();
+
+                        UnityEngine.Random.InitState(id + Mathf.FloorToInt(Time.time * 0.5f));
+                        int offset = UnityEngine.Random.Range(-15, 35);
+
+                        playerPing = Mathf.Max(5, basePing + offset);
+                    }
+                }
+
+                string hexColor = "#FFFFFF";
+                if (rig.Creator != null && GameMode.LocalIsTagged(rig.Creator))
+                {
+                    hexColor = "#FF3333";
+                }
+                else if (rig.mainSkin != null && rig.mainSkin.sharedMaterial != null)
+                {
+                    hexColor = "#" + ColorUtility.ToHtmlStringRGB(rig.mainSkin.sharedMaterial.color);
+                }
+
+                data.TextComponent.text = string.Format("<color={0}>{1}</color>\n<size=75%>Ping: {2}ms</size>", hexColor, photonNick, playerPing);
+            }
+        }
+
+        public static void DisableNametagsMod()
+        {
+            foreach (NametagData data in ActiveNametags.Values)
+            {
+                if (data?.CanvasObject != null) Object.Destroy(data.CanvasObject);
+            }
+            ActiveNametags.Clear();
         }
     }
 }
