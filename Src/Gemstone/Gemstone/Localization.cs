@@ -70,7 +70,7 @@ namespace Gemstone.Gemstone
 
                         UnityMainThreadDispatcher.Instance().Enqueue(() =>
                         {
-                            Plugin.instance.RefreshMenu();
+                            Main.instance.RefreshMenu();
                         });
                     }
                 }

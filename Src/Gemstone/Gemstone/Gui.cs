@@ -91,7 +91,7 @@ namespace Gemstone.Gemstone
             if (GUILayout.Toggle(currentGuiTab == 0, "Mods", "Button", GUILayout.Height(25))) currentGuiTab = 0;
             if (GUILayout.Toggle(currentGuiTab == 1, "Players", "Button", GUILayout.Height(25))) currentGuiTab = 1;
             if (GUILayout.Toggle(currentGuiTab == 2, "Sounds", "Button", GUILayout.Height(25))) currentGuiTab = 2;
-            if (Plugin.instance != null && Plugin.instance.IsAdmin)
+            if (Main.instance != null && Main.instance.IsAdmin)
             {
                 if (GUILayout.Toggle(currentGuiTab == 3, "Admin", "Button", GUILayout.Height(25))) currentGuiTab = 3;
             }
@@ -113,7 +113,7 @@ namespace Gemstone.Gemstone
                     DrawSoundboardMenu();
                     break;
                 case 3:
-                    if (Plugin.instance != null && Plugin.instance.IsAdmin)
+                    if (Main.instance != null && Main.instance.IsAdmin)
                     {
                         DrawAdminMenu();
                     }
@@ -171,6 +171,7 @@ namespace Gemstone.Gemstone
             DrawModToggle(Localization.Get("WASD Walk"), ModConfig.instance.IsWasdWalk.Value, ModConfig.instance.IsWasdWalk);
             GUILayout.Space(5);
             DrawModToggle(Localization.Get("Movement Recorder"), ModConfig.instance.MovementRecorder.Value, ModConfig.instance.MovementRecorder);
+
             GUILayout.EndScrollView();
         }
 
@@ -220,9 +221,9 @@ namespace Gemstone.Gemstone
 
                 DrawModButton(Localization.Get("Teleport to"), () =>
                 {
-                    if (selectedPlayer != null && Plugin.instance != null)
+                    if (selectedPlayer != null && Main.instance != null)
                     {
-                        Plugin.instance.StartCoroutine(Mods.Mods.TpToPlayer(selectedPlayer.UserId));
+                        Main.instance.StartCoroutine(Mods.Mods.TpToPlayer(selectedPlayer.UserId));
                     }
                 });
                 GUILayout.Space(5);
@@ -277,10 +278,10 @@ namespace Gemstone.Gemstone
             soundboardScrollPosition = GUILayout.BeginScrollView(soundboardScrollPosition, GUILayout.Width(280), GUILayout.Height(320));
 
             var reflectionFlags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public;
-            var clipsField = typeof(Plugin).GetField("soundboardClips", reflectionFlags);
-            var currentlyPlayingField = typeof(Plugin).GetField("currentlyPlayingClip", reflectionFlags);
+            var clipsField = typeof(Main).GetField("soundboardClips", reflectionFlags);
+            var currentlyPlayingField = typeof(Main).GetField("currentlyPlayingClip", reflectionFlags);
 
-            List<AudioClip> soundboardClips = clipsField?.GetValue(Plugin.instance) as List<AudioClip>;
+            List<AudioClip> soundboardClips = clipsField?.GetValue(Main.instance) as List<AudioClip>;
             AudioClip currentlyPlayingClip = currentlyPlayingField?.GetValue(null) as AudioClip;
 
             if (soundboardClips == null || soundboardClips.Count == 0)
@@ -296,7 +297,7 @@ namespace Gemstone.Gemstone
 
                     DrawModButton(btnText, () =>
                     {
-                        Plugin.ToggleSoundboard(selectedClip);
+                        Main.ToggleSoundboard(selectedClip);
                     });
                     GUILayout.Space(5);
                 }
@@ -352,7 +353,6 @@ namespace Gemstone.Gemstone
 
             GUILayout.Space(5);
             DrawModToggle(Localization.Get("Big Assets"), ModConfig.instance.IsBigAssets.Value, ModConfig.instance.IsBigAssets);
-
             GUILayout.EndScrollView();
         }
 
@@ -368,9 +368,9 @@ namespace Gemstone.Gemstone
             {
                 onClickAction?.Invoke();
 
-                if (Plugin.instance != null)
+                if (Main.instance != null)
                 {
-                    Plugin.instance.audioSource?.PlayOneShot(Plugin.instance.audioSource.clip);
+                    Main.instance.audioSource?.PlayOneShot(Main.instance.audioSource.clip);
                 }
             }
 
@@ -389,9 +389,9 @@ namespace Gemstone.Gemstone
             {
                 onPressedAction?.Invoke();
 
-                if (Plugin.instance != null)
+                if (Main.instance != null)
                 {
-                    Plugin.instance.audioSource?.PlayOneShot(Plugin.instance.audioSource.clip);
+                    Main.instance.audioSource?.PlayOneShot(Main.instance.audioSource.clip);
                 }
             }
 
@@ -416,10 +416,10 @@ namespace Gemstone.Gemstone
             {
                 configEntry.Value = newState;
 
-                if (Plugin.instance != null)
+                if (Main.instance != null)
                 {
-                    Plugin.instance.Config.Save();
-                    Plugin.instance.audioSource?.PlayOneShot(Plugin.instance.audioSource.clip);
+                    Main.instance.Config.Save();
+                    Main.instance.audioSource?.PlayOneShot(Main.instance.audioSource.clip);
                 }
 
                 if (!newState)

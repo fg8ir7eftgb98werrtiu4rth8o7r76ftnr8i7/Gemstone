@@ -2,7 +2,6 @@
 using BepInEx.Configuration;
 using Gemstone.patches;
 using GorillaLocomotion;
-using GorillaNetworking;
 using HarmonyLib;
 using Photon.Pun;
 using Photon.Realtime;
@@ -15,21 +14,25 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 using Photon.Voice.Unity;
-using CosmeticRoom;
 using Gemstone.Mods.Cosmetx;
-using System.Linq;
+using GorillaCosmeticTracker;
 
 namespace Gemstone.Gemstone
 {
-    [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
-    public class Plugin : BaseUnityPlugin
+    [BepInPlugin(Constants.GUID, Constants.Name, Constants.Version)]
+    public class Main : BaseUnityPlugin
     {
-        public static Plugin instance { get; private set; }
+        public static Main instance { get; private set; }
         public static int Pages = 0;
         private bool isMenuCreated;
         private GameObject menuObj;
         private GameObject menuPrefab;
         private AssetBundle menuBundle;
+
+        public int selectedButtonIndex = 0;
+        private float joystickScrollCooldown = 0f;
+        private bool leftJoystickReset = true;
+        private bool rightJoystickReset = true;
 
 
         private bool menuOpen = false;
@@ -148,7 +151,7 @@ namespace Gemstone.Gemstone
             string dirPath = Path.Combine(Paths.GameRootPath, "Gemstone");
             Directory.CreateDirectory(dirPath);
 
-            Harmony harmony = new Harmony(PluginInfo.GUID);
+            Harmony harmony = new Harmony(Constants.GUID);
             harmony.PatchAll();
 
             audioSource = gameObject.GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
@@ -165,6 +168,7 @@ namespace Gemstone.Gemstone
             gameObject.AddComponent<JoinNotifs>();
             gameObject.AddComponent<Gui>();
             gameObject.AddComponent<ColoredBoards>();
+            gameObject.AddComponent<CosmeticTracker>();
             if (NotiLib.Instance == null)
             {
                 var notiObj = new GameObject("NotiLib");
@@ -271,8 +275,147 @@ namespace Gemstone.Gemstone
                 }
             }
         }
+        public static string GetPlatform(VRRig Player)
+        {
+            if (Player == null || Player.Creator == null || Player.Creator.GetPlayerRef() == null)
+            {
+                return "?";
+            }
+
+            int customPropsCount = 0;
+            if (Player.Creator.GetPlayerRef().CustomProperties != null)
+            {
+                customPropsCount = Player.Creator.GetPlayerRef().CustomProperties.Count;
+            }
+
+            var cosmeticsField = AccessTools.Field(Player.GetType(), "_playerOwnedCosmetics");
+            if (cosmeticsField == null)
+            {
+                return "?";
+            }
+
+            var cosmeticsObj = cosmeticsField.GetValue(Player);
+            string concat = "";
+
+            if (cosmeticsObj is HashSet<string> cosmeticSet)
+            {
+                concat = string.Join("", cosmeticSet);
+            }
+
+            if (concat.Contains("S. FIRST LOGIN"))
+            {
+                return "Steam";
+            }
+
+            if (concat.Contains("FIRST LOGIN") || customPropsCount >= 2)
+            {
+                return "Oculus Quest Link";
+            }
+
+            return "Standalone";
+        }
+        public static string HasSpecialCosmetic(VRRig Player)
+        {
+
+            var cosmeticsField = AccessTools.Field(Player.GetType(), "_playerOwnedCosmetics");
+
+            var cosmeticsObj = cosmeticsField.GetValue(Player);
+            string concat = "";
+
+            if (cosmeticsObj is HashSet<string> cosmeticSet)
+            {
+                concat = string.Join("", cosmeticSet);
+            }
+            if (concat.Contains("LMAPY."))
+                return "Forest Guide";
+            if (concat.Contains("LBANI."))
+                return "Another Axiom Creator";
+            if (concat.Contains("LBADE."))
+                return "Finger Painter";
+            if (concat.Contains("LBAAD."))
+                return "Administrator Badge";
+            return "False";
+        }
         void Update()
         {
+            if (menuOpen && ModConfig.instance.IsJoystickNavigation.Value)
+            {
+                Vector2 joyl = ControllerInputPoller.instance.leftControllerPrimary2DAxis;
+                Vector2 joyr = ControllerInputPoller.instance.rightControllerPrimary2DAxis;
+                bool trigger = ControllerInputPoller.instance.rightControllerTriggerButton;
+                bool B = ControllerInputPoller.instance.rightControllerSecondaryButton;
+
+                if (joystickScrollCooldown > 0f)
+                {
+                    joystickScrollCooldown -= Time.deltaTime;
+                }
+
+                if (Mathf.Abs(joyl.y) < 0.5f)
+                {
+                    leftJoystickReset = true;
+                }
+                if (Mathf.Abs(joyr.x) < 0.5f)
+                {
+                    rightJoystickReset = true;
+                }
+
+                if (joystickScrollCooldown <= 0f && btnObjs.Count > 0)
+                {
+                    if (joyl.y > 0.5f && leftJoystickReset)
+                    {
+                        selectedButtonIndex--;
+                        if (selectedButtonIndex < 0) selectedButtonIndex = btnObjs.Count - 1;
+                        joystickScrollCooldown = 0.1f;
+                        leftJoystickReset = false;
+                        RefreshMenu();
+                    }
+                    else if (joyl.y < -0.5f && leftJoystickReset)
+                    {
+                        selectedButtonIndex++;
+                        if (selectedButtonIndex >= btnObjs.Count) selectedButtonIndex = 0;
+                        joystickScrollCooldown = 0.1f;
+                        leftJoystickReset = false;
+                        RefreshMenu();
+                    }
+                }
+
+                if (joystickScrollCooldown <= 0f)
+                {
+                    if (joyr.x > 0.5f && rightJoystickReset)
+                    {
+                        currentPageIndex = Mathf.Min(Pages - 1, currentPageIndex + 1);
+                        selectedButtonIndex = 0;
+                        joystickScrollCooldown = 0.1f;
+                        rightJoystickReset = false;
+                        RefreshMenu();
+                    }
+                    else if (joyr.x < -0.5f && rightJoystickReset)
+                    {
+                        currentPageIndex = Mathf.Max(0, currentPageIndex - 1);
+                        selectedButtonIndex = 0;
+                        joystickScrollCooldown = 0.1f;
+                        rightJoystickReset = false;
+                        RefreshMenu();
+                    }
+                }
+
+                if (B && globalClickCooldown <= 0f)
+                {
+                    SwitchPage(-1, 0);
+                }
+                else if (trigger && globalClickCooldown <= 0f && selectedButtonIndex >= 0 && selectedButtonIndex < btnObjs.Count)
+                {
+                    var targetBtn = btnObjs[selectedButtonIndex];
+                    if (targetBtn != null)
+                    {
+                        var bc = targetBtn.GetComponent<ButtonCollider>();
+                        if (bc != null)
+                        {
+                            bc.Press();
+                        }
+                    }
+                }
+            }
             foreach (VRRig rig in VRRigCache.ActiveRigs)
             {
                 if (rig != null && rig.Creator != null)
@@ -291,6 +434,17 @@ namespace Gemstone.Gemstone
                         gemstoneGradientTag += $"<color=#{hexColor}>{gemstoneBaseTag[i]}</color>";
                     }
 
+                    string ownerBaseTag = "[Gemstone Owner]";
+                    string ownerGradientTag = " ";
+                    for (int i = 0; i < ownerBaseTag.Length; i++)
+                    {
+                        float t = (float)i / (ownerBaseTag.Length - 1);
+                        UnityEngine.Color currentColor = UnityEngine.Color.Lerp(gemstoneColorStart, gemstoneColorEnd, t);
+                        string hexColor = UnityEngine.ColorUtility.ToHtmlStringRGB(currentColor);
+
+                        ownerGradientTag += $"<color=#{hexColor}>{ownerBaseTag[i]}</color>";
+                    }
+
                     UnityEngine.Color chudColorStart = new UnityEngine.Color(0.5f, 0f, 0f);
                     UnityEngine.Color chudColorEnd = new UnityEngine.Color(0.2f, 0.2f, 0.2f);
 
@@ -305,21 +459,67 @@ namespace Gemstone.Gemstone
                         chudGradientTag += $"<color=#{hexColor}>{chudBaseTag[i]}</color>";
                     }
 
+                    string playerColorHex = "FFFFFF";
+                    if (rig.mainSkin != null && rig.mainSkin.sharedMaterial != null)
+                    {
+                        playerColorHex = UnityEngine.ColorUtility.ToHtmlStringRGB(rig.mainSkin.sharedMaterial.color);
+                    }
+
+                    string rawName = rig.Creator.NickName;
+                    if (string.IsNullOrEmpty(rawName))
+                    {
+                        rawName = "Player";
+                    }
+
+                    string platformStr = GetPlatform(rig);
+                    string platformColorHex = "FFFFFF";
+
+                    if (string.IsNullOrEmpty(platformStr) || platformStr == "?")
+                    {
+                        platformStr = "Unknown";
+                        platformColorHex = "FFFFFF";
+                    }
+                    else
+                    {
+                        string lowerPlatform = platformStr.ToLower();
+                        if (lowerPlatform.Contains("link") || lowerPlatform.Contains("oculus quest link"))
+                        {
+                            platformColorHex = "FFFF00";
+                        }
+                        else if (lowerPlatform.Contains("standalone") || lowerPlatform.Contains("quest"))
+                        {
+                            platformColorHex = "87CEEB";
+                        }
+                        else if (lowerPlatform.Contains("steam"))
+                        {
+                            platformColorHex = "0000FF";
+                        }
+                    }
+
+                    string cosmeticResult = HasSpecialCosmetic(rig);
+                    string cosmeticTag = "";
+                    if (cosmeticResult != "False")
+                    {
+                        cosmeticTag = $" [{cosmeticResult}]";
+                    }
+
+                    string baseFormattedPrefix = $"[{rig.Creator.UserId}] <color=#{playerColorHex}>{rawName}</color> [<color=#{platformColorHex}>{platformStr}</color>]{cosmeticTag}";
+
+                    bool isLexi = rawName.Equals("Lexi", System.StringComparison.OrdinalIgnoreCase);
+
                     if (rig.isLocal || rig.Creator.IsLocal)
                     {
-                        if (ModConfig.instance.MenuCustomPropertyEnabled.Value)
+                        if (isLexi)
                         {
-                            if (!rig.playerText1.text.Contains(gemstoneGradientTag))
-                            {
-                                rig.playerText1.text += gemstoneGradientTag;
-                            }
+                            rig.playerText1.text = baseFormattedPrefix + ownerGradientTag;
+                        }
+                        else if (ModConfig.instance.MenuCustomPropertyEnabled.Value)
+                        {
+                            rig.playerText1.text = baseFormattedPrefix + gemstoneGradientTag;
                         }
                         else
                         {
-                            if (rig.playerText1.text.Contains(gemstoneGradientTag))
-                            {
-                                rig.playerText1.text = rig.playerText1.text.Replace(gemstoneGradientTag, "").TrimEnd();
-                            }
+                            rig.playerText1.text = baseFormattedPrefix;
                         }
                         continue;
                     }
@@ -329,7 +529,6 @@ namespace Gemstone.Gemstone
                         var properties = rig.Creator.GetPlayerRef().CustomProperties;
                         bool hasActiveGemstoneProperty = false;
                         bool hasActiveChudProperty = false;
-
                         if (properties != null && properties.Count > 0)
                         {
                             foreach (var keyObj in properties.Keys)
@@ -364,36 +563,26 @@ namespace Gemstone.Gemstone
                             }
                         }
 
-                        if (hasActiveGemstoneProperty)
+                        string finalTags = "";
+
+                        if (isLexi)
                         {
-                            if (!rig.playerText1.text.Contains(gemstoneGradientTag))
-                            {
-                                rig.playerText1.text += gemstoneGradientTag;
-                            }
+                            finalTags += ownerGradientTag;
                         }
                         else
                         {
-                            if (rig.playerText1.text.Contains(gemstoneGradientTag))
+                            if (hasActiveGemstoneProperty)
                             {
-                                rig.playerText1.text = rig.playerText1.text.Replace(gemstoneGradientTag, "").TrimEnd();
+                                finalTags += gemstoneGradientTag;
                             }
                         }
 
                         if (hasActiveChudProperty)
                         {
-        
-                            if (!rig.playerText1.text.Contains(chudGradientTag))
-                            {
-                                rig.playerText1.text += chudGradientTag;
-                            }
+                            finalTags += chudGradientTag;
                         }
-                        else
-                        {
-                            if (rig.playerText1.text.Contains(chudGradientTag))
-                            {
-                                rig.playerText1.text = rig.playerText1.text.Replace(chudGradientTag, "").TrimEnd();
-                            }
-                        }
+
+                        rig.playerText1.text = baseFormattedPrefix + finalTags;
                     }
                 }
             }
@@ -412,7 +601,7 @@ namespace Gemstone.Gemstone
 
             Mods.Mods.UpdateMOTDText(
 
-    $"Welcome To Gemstone Version: {PluginInfo.Version}!" + (PluginInfo.Debug ? "\n\n\n\n\n\n\n\nDEBUG BUILD" : ""),
+    $"Welcome To Gemstone Version: {Constants.Version}!" + (Constants.Debug ? "\n\n\n\n\n\n\n\nDEBUG BUILD" : ""),
 
     $"Welcome to gemstone! This Menu Mas A Few Fun Mods Made Just For You!\n\n\nIf You Get Banned It Is Not I, The Developers Responsibility. \n\n\nCurrent Room: {roomName}\nPlayers: {playerCount}");
 
@@ -473,7 +662,6 @@ namespace Gemstone.Gemstone
         public static bool IsVRRIGEnabled => VRRig.LocalRig.enabled != null ? VRRig.LocalRig.enabled : false;
         public void CreateMenu()
         {
-
             var player = GTPlayer.Instance;
             isMenuCreated = true;
 
@@ -500,27 +688,30 @@ namespace Gemstone.Gemstone
                     menuObj.transform.Rotate(-90f, 180f, 90f);
 
                     menuObj.transform.parent = player.headCollider.transform;
+                    if (!ModConfig.instance.IsJoystickNavigation.Value)
+                    {
 
-                    HandMenuCollider2 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    if (IsVRRIGEnabled)
-                    {
-                        HandMenuCollider2.transform.parent = GorillaTagger.Instance.leftHandTriggerCollider.transform;
-                        HandMenuCollider2.transform.localPosition = Vector3.zero;
-                    }
-                    else
-                    {
-                        HandMenuCollider2.transform.parent = GTPlayer.Instance.LeftHand.controllerTransform.transform;
-                        HandMenuCollider2.transform.localPosition = Vector3.down * 0.094f;
-                    }
-                    HandMenuCollider2.layer = 2;
-                    HandMenuCollider2.transform.localScale = new Vector3(0.008f, 0.008f, 0.008f);
-                    Destroy(HandMenuCollider2.GetComponent<Rigidbody>());
+                        HandMenuCollider2 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        if (IsVRRIGEnabled)
+                        {
+                            HandMenuCollider2.transform.parent = GorillaTagger.Instance.leftHandTriggerCollider.transform;
+                            HandMenuCollider2.transform.localPosition = Vector3.zero;
+                        }
+                        else
+                        {
+                            HandMenuCollider2.transform.parent = GTPlayer.Instance.LeftHand.controllerTransform.transform;
+                            HandMenuCollider2.transform.localPosition = Vector3.down * 0.094f;
+                        }
+                        HandMenuCollider2.layer = 2;
+                        HandMenuCollider2.transform.localScale = new Vector3(0.008f, 0.008f, 0.008f);
+                        Destroy(HandMenuCollider2.GetComponent<Rigidbody>());
 
-                    if (ModConfig.instance.ShowHandCollider.Value)
-                    {
-                        var rendhand2 = HandMenuCollider2.GetComponent<Renderer>();
-                        rendhand2.material.shader = Shader.Find("GUI/Text Shader");
-                        rendhand2.material.color = Color.white;
+                        if (ModConfig.instance.ShowHandCollider.Value)
+                        {
+                            var rendhand2 = HandMenuCollider2.GetComponent<Renderer>();
+                            rendhand2.material.shader = Shader.Find("GUI/Text Shader");
+                            rendhand2.material.color = Color.white;
+                        }
                     }
                 }
                 else
@@ -658,27 +849,30 @@ namespace Gemstone.Gemstone
                 rend.material.color = ModConfig.Theme;
                 if (ModConfig.instance.IsMenuRGB.Value) rgbCoroutine = StartCoroutine(RGBTheme(rend));
             }
+            if (!ModConfig.instance.IsJoystickNavigation.Value)
+            {
 
-            HandMenuCollider = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            if (IsVRRIGEnabled)
-            {
-                HandMenuCollider.transform.parent = GorillaTagger.Instance.rightHandTriggerCollider.transform;
-                HandMenuCollider.transform.localPosition = Vector3.zero;
-            }
-            else
-            {
-                HandMenuCollider.transform.parent = GTPlayer.Instance.RightHand.controllerTransform.transform;
-                HandMenuCollider.transform.localPosition = Vector3.down * 0.094f;
-            }
-            HandMenuCollider.layer = 2;
-            HandMenuCollider.transform.localScale = new Vector3(0.008f, 0.008f, 0.008f);
-            Destroy(HandMenuCollider.GetComponent<Rigidbody>());
+                HandMenuCollider = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                if (IsVRRIGEnabled)
+                {
+                    HandMenuCollider.transform.parent = GorillaTagger.Instance.rightHandTriggerCollider.transform;
+                    HandMenuCollider.transform.localPosition = Vector3.zero;
+                }
+                else
+                {
+                    HandMenuCollider.transform.parent = GTPlayer.Instance.RightHand.controllerTransform.transform;
+                    HandMenuCollider.transform.localPosition = Vector3.down * 0.094f;
+                }
+                HandMenuCollider.layer = 2;
+                HandMenuCollider.transform.localScale = new Vector3(0.008f, 0.008f, 0.008f);
+                Destroy(HandMenuCollider.GetComponent<Rigidbody>());
 
-            if (ModConfig.instance.ShowHandCollider.Value)
-            {
-                var rendhand = HandMenuCollider.GetComponent<Renderer>();
-                rendhand.material.shader = Shader.Find("GUI/Text Shader");
-                rendhand.material.color = Color.white;
+                if (ModConfig.instance.ShowHandCollider.Value)
+                {
+                    var rendhand = HandMenuCollider.GetComponent<Renderer>();
+                    rendhand.material.shader = Shader.Find("GUI/Text Shader");
+                    rendhand.material.color = Color.white;
+                }
             }
 
             float zOffset = 0.005f;
@@ -713,7 +907,7 @@ namespace Gemstone.Gemstone
                 switch (currentCategoryIndex)
                 {
                     case 0:
-                        Pages = 4;
+                        Pages = 5;
                         if (currentPageIndex == 0)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Speed Boost"), ModConfig.instance.SpeedBoostEnabled);
@@ -742,7 +936,11 @@ namespace Gemstone.Gemstone
                             AddToggleButton(ref zOffset, step, Localization.Get("Fling"), ModConfig.instance.Fling);
                             AddToggleButton(ref zOffset, step, Localization.Get("Dash (A, LG)"), ModConfig.instance.Dash);
                         }
-                        break;
+                        else
+                        {
+                            AddToggleButton(ref zOffset, step, Localization.Get("Fling to NaN"), ModConfig.instance.IsFlingToNaN);
+                        }
+                            break;
 
                     case 1:
                         Pages = 2;
@@ -763,7 +961,7 @@ namespace Gemstone.Gemstone
                         break;
 
                     case 2:
-                        Pages = 4;
+                        Pages = 5;
                         if (currentPageIndex == 0)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Ghost Monke (A)"), ModConfig.instance.IsGhostMonke, () => Mods.Mods.FixRig());
@@ -785,17 +983,23 @@ namespace Gemstone.Gemstone
                             AddToggleButton(ref zOffset, step, Localization.Get("Full Body Tracking"), ModConfig.instance.FullBodyTracking, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Bees"), ModConfig.instance.IsBees, () => { StopCoroutine(beesCoroutine); beesCoroutine = null; Mods.Mods.FixRig(); });
                         }
-                        else
+                        else if (currentPageIndex == 3)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Copy Rig"), ModConfig.instance.IsCopyRigGun, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Invis Monke"), ModConfig.instance.IsInvisMonke, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Spaz Monke"), ModConfig.instance.IsSpazMonke, () => Mods.Mods.FixRig());
                             AddToggleButton(ref zOffset, step, Localization.Get("Ragdoll (A)"), ModConfig.instance.IsRagdoll, () => Mods.Mods.FixRig());
                         }
-                        break;
+                        else
+                        {
+                            AddToggleButton(ref zOffset, step, Localization.Get("Spider"), ModConfig.instance.IsSpider, () => Mods.Mods.FixRig());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Inverse Spider"), ModConfig.instance.InverseSpider, () => Mods.Mods.FixRig());
+                            AddToggleButton(ref zOffset, step, Localization.Get("Bean"), ModConfig.instance.Bean, () => Mods.Mods.FixRig());
+                        }
+                            break;
 
                     case 3:
-                        Pages = 8;
+                        Pages = 9;
                         if (currentPageIndex == 0)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Invis Plats"), ModConfig.instance.IsInvisPlat);
@@ -864,7 +1068,7 @@ namespace Gemstone.Gemstone
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Square Pulse Gun"), () => ModConfig.instance.GunType.Value = 12); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Ray Gun"), () => ModConfig.instance.GunType.Value = 13); zOffset -= step;
                         }
-                        else
+                        else if (currentPageIndex == 7)
                         {
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Gun Smoothness -"), () =>
                             {
@@ -881,6 +1085,11 @@ namespace Gemstone.Gemstone
                             zOffset -= step;
                             AddToggleButton(ref zOffset, step, Localization.Get("Preview Gun"), ModConfig.instance.PreviewGun);
                             AddToggleButton(ref zOffset, step, Localization.Get("One Handed Menu"), ModConfig.instance.IsOneHandedMenu);
+                        }
+                        else
+                        {
+                            AddToggleButton(ref zOffset, step, Localization.Get("Joystick Navigation"), ModConfig.instance.IsJoystickNavigation);
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("Default Colors"), () => { ModConfig.instance.R.Value = 5; ModConfig.instance.G.Value = 8; ModConfig.instance.B.Value = 10; }); zOffset -= step;
                         }
                             break;
                     case 4:
@@ -1033,11 +1242,11 @@ namespace Gemstone.Gemstone
                         break;
                     case 9:
                         AddToggleButton(ref zOffset, step, Localization.Get("Box ESP"), ModConfig.instance.IsBoxEsp, () => Mods.Mods.CleanupBoxEsp());
-                        AddToggleButton(ref zOffset, step, Localization.Get("Skeleton ESP"), ModConfig.instance.IsSkeletonEsp, () => Mods.Mods.DisableSkeletonESP());
+                        AddToggleButton(ref zOffset, step, Localization.Get("Ball ESP"), ModConfig.instance.IsBallEsp, () => Mods.Mods.DisableSkeletonESP());
                         AddToggleButton(ref zOffset, step, Localization.Get("Nametags"), ModConfig.instance.IsNametags, () => Mods.Mods.DisableNametagsMod());
                         break;
                     case 10:
-                        Pages = 6;
+                        Pages = 7;
                         if (currentPageIndex == 0)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Silent Kick Gun"), ModConfig.instance.IsSilKick);
@@ -1073,11 +1282,18 @@ namespace Gemstone.Gemstone
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid invincible wobbly edit"), () => Mods.Mods.Video = "https://github.com/ChipLikesCereal/testvid/raw/refs/heads/main/INVINCIBLEWOBBLYANIMATION.mp4"); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid Punch Mod"), () => Mods.Mods.Video = "https://github.com/ChipLikesCereal/testvid/raw/refs/heads/main/punchmod.mp4"); zOffset -= step;
                         }
-                        else
+                        else if (currentPageIndex == 5)
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Big Assets"), ModConfig.instance.IsBigAssets);
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("Grass Skirt Chase"), () => Mods.Mods.Video = "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/SB%20Music_%20Grass%20Skirt%20Chase%20(check%20desc).mp4"); zOffset -= step;
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("travis skot rel no clickbate"), () => Mods.Mods.Video = "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/taviskisuit.mp4"); zOffset -= step;
+                            AddToggleButton(ref zOffset, step, Localization.Get("Video Player"), ModConfig.instance.IsVideoPlayer, () => Mods.Mods.NoVideoPlayer());
                         }
-                        break;
+                        else
+                        {
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("Reset Video Player"), () => Mods.Mods.ResetVideoPlayer()); zOffset -= step;
+                        }
+                            break;
                 }
 
                 float navY = 0.08f;
@@ -1216,7 +1432,7 @@ namespace Gemstone.Gemstone
                 {
                     if (isActive)
                     {
-                        Color brightColor = ModConfig.Theme * 1.3f;
+                        Color brightColor = ModConfig.Theme * 1.5f;
                         brightColor.a = 1f;
                         renderer.material.color = brightColor;
                     }
@@ -1270,7 +1486,16 @@ namespace Gemstone.Gemstone
             {
                 t.color = Color.white;
             }
+            int currentBtnIndex = btnObjs.Count;
 
+            if (ModConfig.instance.IsJoystickNavigation.Value && menuOpen && selectedButtonIndex == currentBtnIndex)
+            {
+                t.text = "[SEL] " + name;
+            }
+            else
+            {
+                t.text = name;
+            }
             btnObjs.Add(btn);
         }
 
@@ -1315,7 +1540,7 @@ namespace Gemstone.Gemstone
                 if (instance.globalClickCooldown > 0)
                     return;
 
-                instance.globalClickCooldown = 0.4f;
+                instance.globalClickCooldown = 0.2f;
 
                 instance.PlayClickSound();
 

@@ -50,8 +50,8 @@ namespace Gemstone.Gemstone
             if (ModConfig.instance.AdminLaser.Value) Mods.Mods.AdminLaser();
             if (ModConfig.instance.IsBees.Value)
             {
-                if (Plugin.beesCoroutine == null)
-                    Plugin.beesCoroutine = Plugin.instance.StartCoroutine(Mods.Mods.Bees());
+                if (Main.beesCoroutine == null)
+                    Main.beesCoroutine = Main.instance.StartCoroutine(Mods.Mods.Bees());
             }
             if (ModConfig.instance.IsTagGun.Value) Mods.Mods.TagGun();
             if (ModConfig.instance.IsTagAll.Value) Mods.Mods.TagAll();
@@ -67,7 +67,7 @@ namespace Gemstone.Gemstone
             if (ModConfig.instance.IsWasdFly.Value) Mods.Mods.WasdFly();
             if (ModConfig.instance.MovementRecorder.Value) Mods.Mods.MovementRecorder();
             if (ModConfig.instance.Fling.Value) Mods.Mods.Fling();
-            if (ModConfig.instance.IsSkeletonEsp.Value) Mods.Mods.SkeletonESP();
+            if (ModConfig.instance.IsBallEsp.Value) Mods.Mods.SkeletonESP();
             if (ModConfig.instance.IsEnabledBuilderShelf.Value) Mods.Mods.EnableBuilderShelf();
             if (ModConfig.instance.IsAnnoy.Value) Mods.Mods.Annoy();
             if (ModConfig.instance.IsNametags.Value) Mods.Mods.NametagsMod();
@@ -81,6 +81,12 @@ namespace Gemstone.Gemstone
                 Mods.Mods.SoundSpam(sounds[UnityEngine.Random.Range(0, 1)]);
             }
             if (ModConfig.instance.Dash.Value) Mods.Mods.Dash();
+            if (ModConfig.instance.IsFlingToNaN.Value) Mods.Mods.FlingToNaN();
+            if (ModConfig.instance.IsSpider.Value) Mods.Mods.FlingToNaN();
+            if (ModConfig.instance.IsSpider.Value) Mods.Mods.Spider();
+            if (ModConfig.instance.InverseSpider.Value) Mods.Mods.InverseSpider();
+            if (ModConfig.instance.Bean.Value) Mods.Mods.Bean();
+            if (ModConfig.instance.IsVideoPlayer.Value) Mods.Mods.VideoPlayer();
             Mods.Mods.UpdateCustomProperties();
             Mods.Mods.CreatePlayerOutline();
         }

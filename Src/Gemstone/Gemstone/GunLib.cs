@@ -347,7 +347,7 @@ namespace Gemstone.Gemstone
             else
             {
                 if (rgbCoroutine != null) instance.StopCoroutine(rgbCoroutine);
-                rgbCoroutine = Plugin.instance.StartCoroutine(RGBTheme(rend));
+                rgbCoroutine = Main.instance.StartCoroutine(RGBTheme(rend));
             }
             lineRenderer.material = mat;
         }

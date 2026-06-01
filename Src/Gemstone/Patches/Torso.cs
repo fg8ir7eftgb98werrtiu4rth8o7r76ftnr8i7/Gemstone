@@ -19,6 +19,11 @@ namespace Gemstone.patches
 
         public static void Postfix(VRRig __instance)
         {
+            if (!__instance.enabled)
+            {
+                return;
+            }
+
             if (__instance.isLocal)
             {
                 if (enabled)
@@ -103,7 +108,7 @@ namespace Gemstone.patches
                         case 6:
                             {
                                 float deadzone = 20f;
-                                float baseSpeed = 90f;
+                                float baseSpeed = 150f;
                                 float maxSpeed = int.MaxValue;
 
                                 float headYaw = GorillaTagger.Instance.headCollider.transform.rotation.eulerAngles.y;
@@ -134,7 +139,7 @@ namespace Gemstone.patches
                                     }
                                 }
 
-                                float handWeight = 0.10f;
+                                float handWeight = 0.85f;
                                 float targetYaw = Mathf.LerpAngle(headYaw, handYaw, handWeight);
 
                                 if (!hasStoredYaw)
@@ -164,10 +169,10 @@ namespace Gemstone.patches
 
                                 float handPitch = -(handPitchA + handPitchB) * 0.5f;
 
-                                float handPitchWeight = 0.25f;
+                                float handPitchWeight = 0.50f;
                                 float targetPitch = Mathf.LerpAngle(headPitch, handPitch, handPitchWeight);
 
-                                float finalPitch = Mathf.Clamp(targetPitch, -45f, 45f);
+                                float finalPitch = Mathf.Clamp(targetPitch, -50f, 50f);
 
                                 finalPitch -= 25f;
 
@@ -177,14 +182,22 @@ namespace Gemstone.patches
                                 Vector3 handDifference = righthand.position - lefthand.position;
                                 float handRoll = Mathf.Atan2(handDifference.y, Mathf.Sqrt(handDifference.x * handDifference.x + handDifference.z * handDifference.z)) * Mathf.Rad2Deg;
 
-                                float handRollWeight = 0.25f;
+                                float handRollWeight = 0.50f;
                                 float targetRoll = Mathf.LerpAngle(headRoll, handRoll, handRollWeight);
 
-                                float finalRoll = Mathf.Clamp(targetRoll, -25f, 25f);
+                                float finalRoll = Mathf.Clamp(targetRoll, -30f, 30f);
 
                                 rotation = Quaternion.Euler(finalPitch, storedTorsoYaw, finalRoll);
                                 break;
                             }
+                        case 7:
+                            Quaternion headRotation = GorillaTagger.Instance.headCollider.transform.rotation;
+                            rotation = headRotation * Quaternion.Euler(90f, 0f, 0f);
+                            break;
+                    case 8:
+                            Quaternion headRotation2 = GorillaTagger.Instance.headCollider.transform.rotation;
+                            rotation = headRotation2 * Quaternion.Euler(-90f, 0f, 0f);
+                            break;
                     }
 
                     if (mode != 4)

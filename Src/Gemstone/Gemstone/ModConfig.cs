@@ -18,8 +18,8 @@ namespace Gemstone.Gemstone
                          IsAxe, IsBigAssets, IsTv, IsUpsideDownHead, IsBackwardsHead,
                          IsAntiReportEnabled, IsGhostMonke, IsMenuRGB, IsInvisPlat, IsFunnyRig, IsRecroomTorso, IsRecroomRig, FullBodyTracking, ShowHandCollider, AdminLaser, IsBees, IsTagGun, IsTagAll, IsCopyRigGun,
                          IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, IsWasdWalk, MovementRecorder,
-                         Fling, IsSkeletonEsp, IsOneHandedMenu, IsEnabledBuilderShelf, IsAnnoy, IsNametags, IsJmanSoundSpam,
-                         IsCrystalSoundSpam, Dash;
+                         Fling, IsBallEsp, IsOneHandedMenu, IsEnabledBuilderShelf, IsAnnoy, IsNametags, IsJmanSoundSpam,
+                         IsCrystalSoundSpam, Dash, IsFlingToNaN, IsSpider, InverseSpider, Bean, IsJoystickNavigation, IsVideoPlayer;
 
         public ConfigEntry<float> FlySpeedSave, WebSlingSpeedSave, R, G, B, GunSmoothness;
         public ConfigEntry<int> Language, GunType, MenuType;
@@ -31,87 +31,93 @@ namespace Gemstone.Gemstone
         void Awake()
         {
             instance = this;
-            Language = Plugin.instance.Config.Bind("Settings", "Language", 1, "");
-            Language = Plugin.instance.Config.Bind("Settings", "Menu Type", 0, "");
-            R = Plugin.instance.Config.Bind("Settings", "Theme R", 5f, "");
-            G = Plugin.instance.Config.Bind("Settings", "Theme G", 8f, "");
-            B = Plugin.instance.Config.Bind("Settings", "Theme B", 10f, "");
-            GunType = Plugin.instance.Config.Bind("Settings", "Gun Type", 1, "");
-            FlySpeedSave = Plugin.instance.Config.Bind("Settings", "FlySpeedSave", 4f, "");
-            WebSlingSpeedSave = Plugin.instance.Config.Bind("Settings", "WebSlingSpeedSave", 30f, "");
-            GunSmoothness = Plugin.instance.Config.Bind("Settings", "Gun Smoothness", 0.2f, "");
+            Language = Main.instance.Config.Bind("Settings", "Language", 1, "");
+            Language = Main.instance.Config.Bind("Settings", "Menu Type", 0, "");
+            R = Main.instance.Config.Bind("Settings", "Theme R", 5f, "");
+            G = Main.instance.Config.Bind("Settings", "Theme G", 8f, "");
+            B = Main.instance.Config.Bind("Settings", "Theme B", 10f, "");
+            GunType = Main.instance.Config.Bind("Settings", "Gun Type", 1, "");
+            FlySpeedSave = Main.instance.Config.Bind("Settings", "FlySpeedSave", 4f, "");
+            WebSlingSpeedSave = Main.instance.Config.Bind("Settings", "WebSlingSpeedSave", 30f, "");
+            GunSmoothness = Main.instance.Config.Bind("Settings", "Gun Smoothness", 0.2f, "");
 
-            IsMenuRGB = Plugin.instance.Config.Bind("Settings", "Rgb Mode", false, "");
-            IsInvisPlat = Plugin.instance.Config.Bind("Settings", "Invis Plats", false, "");
-            ShowHandCollider = Plugin.instance.Config.Bind("Settings", "Show Hand Collider", true, "");
+            IsMenuRGB = Main.instance.Config.Bind("Settings", "Rgb Mode", false, "");
+            IsInvisPlat = Main.instance.Config.Bind("Settings", "Invis Plats", false, "");
+            ShowHandCollider = Main.instance.Config.Bind("Settings", "Show Hand Collider", true, "");
 
-            PreviewGun = Plugin.instance.Config.Bind("Settings", "Preview Gun", false, "");
-            SpeedBoostEnabled = Plugin.instance.Config.Bind("Movement", "Speed Boost", false, "");
-            FlyEnabled = Plugin.instance.Config.Bind("Movement", "Fly", false, "");
-            LongArmsEnabled = Plugin.instance.Config.Bind("Movement", "Long Arms", false, "");
-            IsPlatformsEnabled = Plugin.instance.Config.Bind("Movement", "Platforms", false, "");
-            IsNoclipEnabled = Plugin.instance.Config.Bind("Movement", "Noclip", false, "");
-            IsJoystickFly =     Plugin.instance.Config.Bind("Movement", "Joystick Fly", false, "");
-            IsGroundHelper = Plugin.instance.Config.Bind("Movement", "Ground Helper", false, "");
-            IsAmplifiedMonke = Plugin.instance.Config.Bind("Movement", "Amplified Monke", false, "");
-            IsWebSlingers = Plugin.instance.Config.Bind("Movement", "Web Slingers", false, "");
-            IsTPGun = Plugin.instance.Config.Bind("Movement", "Teleport Gun", false, "");
-            IsTagGun = Plugin.instance.Config.Bind("Movement", "Tag Gun", false, "");
-            IsTagAll = Plugin.instance.Config.Bind("Movement", "Tag All", false, "");
-            IsBoxEsp = Plugin.instance.Config.Bind("Movement", "Box Esp", false, "");
-            IsSkeletonEsp = Plugin.instance.Config.Bind("Movement", "Skeleton ESP", false, "");
-            IsWasdFly = Plugin.instance.Config.Bind("Movement", "Wasd Fly", false, "");
+            PreviewGun = Main.instance.Config.Bind("Settings", "Preview Gun", false, "");
+            SpeedBoostEnabled = Main.instance.Config.Bind("Movement", "Speed Boost", false, "");
+            FlyEnabled = Main.instance.Config.Bind("Movement", "Fly", false, "");
+            LongArmsEnabled = Main.instance.Config.Bind("Movement", "Long Arms", false, "");
+            IsPlatformsEnabled = Main.instance.Config.Bind("Movement", "Platforms", false, "");
+            IsNoclipEnabled = Main.instance.Config.Bind("Movement", "Noclip", false, "");
+            IsJoystickFly =     Main.instance.Config.Bind("Movement", "Joystick Fly", false, "");
+            IsGroundHelper = Main.instance.Config.Bind("Movement", "Ground Helper", false, "");
+            IsAmplifiedMonke = Main.instance.Config.Bind("Movement", "Amplified Monke", false, "");
+            IsWebSlingers = Main.instance.Config.Bind("Movement", "Web Slingers", false, "");
+            IsTPGun = Main.instance.Config.Bind("Movement", "Teleport Gun", false, "");
+            IsTagGun = Main.instance.Config.Bind("Movement", "Tag Gun", false, "");
+            IsTagAll = Main.instance.Config.Bind("Movement", "Tag All", false, "");
+            IsBoxEsp = Main.instance.Config.Bind("Movement", "Box Esp", false, "");
+            IsBallEsp = Main.instance.Config.Bind("Movement", "Ball ESP", false, "");
+            IsWasdFly = Main.instance.Config.Bind("Movement", "Wasd Fly", false, "");
 
-            IsGhostMonke = Plugin.instance.Config.Bind("Rig", "Ghost Monke", false, "");
-            IsLockOntoRig = Plugin.instance.Config.Bind("Rig", "Lock Rig", false, "");
-            IsHoldRig = Plugin.instance.Config.Bind("Rig", "Hold Rig", false, "");
-            IsRigGun = Plugin.instance.Config.Bind("Rig", "Rig Gun", false, "");
-            IsFreezeRig =   Plugin.instance.Config.Bind("Rig", "Freeze Rig", false, "");
-            IsUpsideDownHead = Plugin.instance.Config.Bind("Rig", "Upside Down Head", false, "");
-            IsBackwardsHead = Plugin.instance.Config.Bind("Rig", "Backwards Head", false, "");
-            IsFunnyRig = Plugin.instance.Config.Bind("Rig", "Funny Rig", false, "");
-            IsRecroomTorso = Plugin.instance.Config.Bind("Rig", "Recroom Torso", false, "");
-            IsRecroomRig = Plugin.instance.Config.Bind("Rig", "Recroom Rig", false, "");
-            FullBodyTracking = Plugin.instance.Config.Bind("Rig", "Full Body Tracking", false, "");
-            IsBees = Plugin.instance.Config.Bind("Rig", "Bees", false, "");
-            IsCopyRigGun = Plugin.instance.Config.Bind("Rig", "Copy Rig Gun", false, "");
-            IsInvisMonke = Plugin.instance.Config.Bind("Rig", "Invis Monke", false, "");
-            IsSpazMonke = Plugin.instance.Config.Bind("Rig", "Spaz Monke", false, "");
+            IsGhostMonke = Main.instance.Config.Bind("Rig", "Ghost Monke", false, "");
+            IsLockOntoRig = Main.instance.Config.Bind("Rig", "Lock Rig", false, "");
+            IsHoldRig = Main.instance.Config.Bind("Rig", "Hold Rig", false, "");
+            IsRigGun = Main.instance.Config.Bind("Rig", "Rig Gun", false, "");
+            IsFreezeRig =   Main.instance.Config.Bind("Rig", "Freeze Rig", false, "");
+            IsUpsideDownHead = Main.instance.Config.Bind("Rig", "Upside Down Head", false, "");
+            IsBackwardsHead = Main.instance.Config.Bind("Rig", "Backwards Head", false, "");
+            IsFunnyRig = Main.instance.Config.Bind("Rig", "Funny Rig", false, "");
+            IsRecroomTorso = Main.instance.Config.Bind("Rig", "Recroom Torso", false, "");
+            IsRecroomRig = Main.instance.Config.Bind("Rig", "Recroom Rig", false, "");
+            FullBodyTracking = Main.instance.Config.Bind("Rig", "Full Body Tracking", false, "");
+            IsBees = Main.instance.Config.Bind("Rig", "Bees", false, "");
+            IsCopyRigGun = Main.instance.Config.Bind("Rig", "Copy Rig Gun", false, "");
+            IsInvisMonke = Main.instance.Config.Bind("Rig", "Invis Monke", false, "");
+            IsSpazMonke = Main.instance.Config.Bind("Rig", "Spaz Monke", false, "");
 
 
-            IsBraceletSpam = Plugin.instance.Config.Bind("Fun", "Invi", false, "");
+            IsBraceletSpam = Main.instance.Config.Bind("Fun", "Bracelet Spam", false, "");
 
-            IsGetPIDGun = Plugin.instance.Config.Bind("Utility", "Get PID Gun", false, "");
-            IsMuteGun = Plugin.instance.Config.Bind("Utility", "Mute Gun", false, "");
-            IsMuteEveryoneExceptGun = Plugin.instance.Config.Bind("Utility", "Mute Others", false, "");
-            IsReportGun = Plugin.instance.Config.Bind("Utility", "Report Gun", false, "");
-            IsAntiReportEnabled = Plugin.instance.Config.Bind("Important", "Anti Report", false, "");
-            IsBypassAutoMod = Plugin.instance.Config.Bind("Important", "Bypass Automod", false, "");
-            MenuCustomPropertyEnabled = Plugin.instance.Config.Bind("Utility", "Menu Custom Property", true, "");
+            IsGetPIDGun = Main.instance.Config.Bind("Utility", "Get PID Gun", false, "");
+            IsMuteGun = Main.instance.Config.Bind("Utility", "Mute Gun", false, "");
+            IsMuteEveryoneExceptGun = Main.instance.Config.Bind("Utility", "Mute Others", false, "");
+            IsReportGun = Main.instance.Config.Bind("Utility", "Report Gun", false, "");
+            IsAntiReportEnabled = Main.instance.Config.Bind("Important", "Anti Report", false, "");
+            IsBypassAutoMod = Main.instance.Config.Bind("Important", "Bypass Automod", false, "");
+            MenuCustomPropertyEnabled = Main.instance.Config.Bind("Utility", "Menu Custom Property", true, "");
 
-            IsSilKick = Plugin.instance.Config.Bind("Admin", "SilKick", false, "");
-            IsTwerkingCarti = Plugin.instance.Config.Bind("Admin", "Twerking Carti", false, "");
-            IsCoolSword = Plugin.instance.Config.Bind("Admin", "Cool Sword", false, "");
-            IsTravis = Plugin.instance.Config.Bind("Admin", "Travis Scott", false, "");
-            IsPhone = Plugin.instance.Config.Bind("Admin", "Phone", false, "");
-            IsAdminGrab = Plugin.instance.Config.Bind("Admin", "Grab All", false, "");
-            IsKormakur = Plugin.instance.Config.Bind("Admin", "Kormakur", false, "");
-            IsAxe = Plugin.instance.Config.Bind("Admin", "Axe", false, "");
-            IsBigAssets = Plugin.instance.Config.Bind("Admin", "Big Assets", false, "");
-            IsTv = Plugin.instance.Config.Bind("Admin", "TV", false, "");
-            AdminLaser = Plugin.instance.Config.Bind("Admin", "Laser", false, "");
-            IsCherryBomb = Plugin.instance.Config.Bind("Admin", "CherryBomb idfk", false, "");
-            IsRagdoll = Plugin.instance.Config.Bind("Rig", "Ragdoll", false, "");
-            IsWasdWalk = Plugin.instance.Config.Bind("Movement", "Wasd Walk", false, "");
-            MovementRecorder = Plugin.instance.Config.Bind("Movement", "Movement Recorder", false, "");
-            Fling = Plugin.instance.Config.Bind("Movement", "Fling", false, "");
-            IsOneHandedMenu = Plugin.instance.Config.Bind("Settings", "One Handed Menu", false, "");
-            IsEnabledBuilderShelf = Plugin.instance.Config.Bind("Settings", "Enable Builder Shelf", false, "");
-            IsAnnoy = Plugin.instance.Config.Bind("Fun", "Annoy", false, "");
-            IsNametags = Plugin.instance.Config.Bind("Movement", "Nametags", false, "");
-            IsJmanSoundSpam = Plugin.instance.Config.Bind("Sound", "Jman SS", false, "");
-            IsCrystalSoundSpam = Plugin.instance.Config.Bind("Sound", "Crystal SS", false, "");
-            Dash = Plugin.instance.Config.Bind("Movement", "Dash", false, "");
+            IsSilKick = Main.instance.Config.Bind("Admin", "SilKick", false, "");
+            IsTwerkingCarti = Main.instance.Config.Bind("Admin", "Twerking Carti", false, "");
+            IsCoolSword = Main.instance.Config.Bind("Admin", "Cool Sword", false, "");
+            IsTravis = Main.instance.Config.Bind("Admin", "Travis Scott", false, "");
+            IsPhone = Main.instance.Config.Bind("Admin", "Phone", false, "");
+            IsAdminGrab = Main.instance.Config.Bind("Admin", "Grab All", false, "");
+            IsKormakur = Main.instance.Config.Bind("Admin", "Kormakur", false, "");
+            IsAxe = Main.instance.Config.Bind("Admin", "Axe", false, "");
+            IsBigAssets = Main.instance.Config.Bind("Admin", "Big Assets", false, "");
+            IsTv = Main.instance.Config.Bind("Admin", "TV", false, "");
+            AdminLaser = Main.instance.Config.Bind("Admin", "Laser", false, "");
+            IsCherryBomb = Main.instance.Config.Bind("Admin", "CherryBomb idfk", false, "");
+            IsRagdoll = Main.instance.Config.Bind("Rig", "Ragdoll", false, "");
+            IsWasdWalk = Main.instance.Config.Bind("Movement", "Wasd Walk", false, "");
+            MovementRecorder = Main.instance.Config.Bind("Movement", "Movement Recorder", false, "");
+            Fling = Main.instance.Config.Bind("Movement", "Fling", false, "");
+            IsFlingToNaN = Main.instance.Config.Bind("Movement", "Fling To NaN", false, "");
+            IsOneHandedMenu = Main.instance.Config.Bind("Settings", "One Handed Menu", false, "");
+            IsEnabledBuilderShelf = Main.instance.Config.Bind("Settings", "Enable Builder Shelf", false, "");
+            IsAnnoy = Main.instance.Config.Bind("Fun", "Annoy", false, "");
+            IsNametags = Main.instance.Config.Bind("Movement", "Nametags", false, "");
+            IsJmanSoundSpam = Main.instance.Config.Bind("Sound", "Jman SS", false, "");
+            IsCrystalSoundSpam = Main.instance.Config.Bind("Sound", "Crystal SS", false, "");
+            Dash = Main.instance.Config.Bind("Movement", "Dash", false, "");
+            IsSpider = Main.instance.Config.Bind("Movement", "Spider", false, "");
+            InverseSpider = Main.instance.Config.Bind("Movement", "Inverse Spider", false, "");
+            Bean = Main.instance.Config.Bind("Movement", "Bean", false, "");
+            IsJoystickNavigation = Main.instance.Config.Bind("Settings", "Joystick Navigation", false, "Allows navigating the menu using joysticks and B.");
+            IsVideoPlayer = Main.instance.Config.Bind("Admin", "Video Player", false, "");
         }
     }
 }

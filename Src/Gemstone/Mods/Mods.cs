@@ -15,6 +15,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static Bindings;
 using Object = UnityEngine.Object;
 
 namespace Gemstone.Mods
@@ -90,7 +91,7 @@ namespace Gemstone.Mods
                     if (!ModConfig.instance.IsMenuRGB.Value)
                         rendL.material.color = themeColor;
                     else
-                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rendL));
+                        Main.instance.StartCoroutine(Main.instance.RGBTheme(rendL));
 
                         Destroy(LeftS.GetComponent<Rigidbody>());
                     Destroy(LeftS.GetComponent<Collider>());
@@ -107,7 +108,7 @@ namespace Gemstone.Mods
                     if (!ModConfig.instance.IsMenuRGB.Value)
                         rendR.material.color = themeColor;
                     else
-                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rendR));
+                        Main.instance.StartCoroutine(Main.instance.RGBTheme(rendR));
 
                     Destroy(RightS.GetComponent<Rigidbody>());
                     Destroy(RightS.GetComponent<Collider>());
@@ -124,7 +125,7 @@ namespace Gemstone.Mods
                     if (!ModConfig.instance.IsMenuRGB.Value)
                         rendH.material.color = themeColor;
                     else
-                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rendH));
+                        Main.instance.StartCoroutine(Main.instance.RGBTheme(rendH));
 
                     Destroy(HeadS.GetComponent<Rigidbody>());
                     Destroy(HeadS.GetComponent<Collider>());
@@ -474,7 +475,7 @@ namespace Gemstone.Mods
                     }
                     else
                     {
-                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rend));
+                        Main.instance.StartCoroutine(Main.instance.RGBTheme(rend));
                     }
                 }
                 else
@@ -507,7 +508,7 @@ namespace Gemstone.Mods
                     }
                     else
                     {
-                        Plugin.instance.StartCoroutine(Plugin.instance.RGBTheme(rend));
+                        Main.instance.StartCoroutine(Main.instance.RGBTheme(rend));
                     }
                 }
                 else
@@ -921,6 +922,7 @@ namespace Gemstone.Mods
         }
 
         private static int allocatedSwordId = -1;
+        private static int allocatedSwordVidId = -1;
         private static bool HasSpawnedSword = false;
         private static bool HasPlayed = false;
 
@@ -938,6 +940,17 @@ namespace Gemstone.Mods
                     Console.Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, allocatedSwordId, 2);
                     Console.Console.ExecuteCommand("asset-playsound", ReceiverGroup.All, allocatedSwordId, "Model", "Unsheath");
                 }
+
+                if (allocatedSwordVidId < 0)
+                {
+                    allocatedSwordVidId = Console.Console.GetFreeAssetID();
+                    Console.Console.ExecuteCommand("asset-spawn", ReceiverGroup.All, "console.main1", "VideoPlayer", allocatedSwordVidId);
+                    Console.Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, allocatedSwordVidId, new Vector3(0.1f, 0.1f, 0.1f));
+                    Console.Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, allocatedSwordVidId, Vector3.zero);
+                    Console.Console.ExecuteCommand("asset-destroycolliders", ReceiverGroup.All, allocatedSwordVidId);
+                    Console.Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, allocatedSwordVidId, "Video", "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/RobloxSword.mp4");
+                }
+
                 HasSpawnedSword = true;
             }
 
@@ -956,7 +969,9 @@ namespace Gemstone.Mods
         public static void NoSword()
         {
             Console.Console.ExecuteCommand("asset-destroy", ReceiverGroup.All, allocatedSwordId);
+            Console.Console.ExecuteCommand("asset-destroy", ReceiverGroup.All, allocatedSwordVidId);
             allocatedSwordId = -1;
+            allocatedSwordVidId = -1;
             HasSpawnedSword = false;
         }
 
@@ -982,6 +997,8 @@ namespace Gemstone.Mods
             HasTravisTravised = false;
             Console.Console.ExecuteCommand("asset-destroy", ReceiverGroup.All, allocatedTravisId);
         }
+
+        
 
         public static int phoneid;
         public static bool HasCreatedPhone = false;
@@ -1093,6 +1110,137 @@ namespace Gemstone.Mods
             Console.Console.ExecuteCommand("asset-destroy", ReceiverGroup.All, TvID);
             Console.Console.ExecuteCommand("asset-destroy", ReceiverGroup.All, sofaAssetId);
             Hastvtved = false;
+        }
+        private static int PlayerId;
+        private static bool HasSpawnedVideoPlayer;
+        private static bool isAdjustingScale;
+        private static bool primaryButtonWasPressed;
+        private static float currentForwardOffset = 2f;
+        private static Vector3 currentScale = new Vector3(0.3f, 0.3f, 0.3f);
+
+        private static Vector3 savedSpawnPosition = Vector3.zero;
+        private static Quaternion savedSpawnRotation = Quaternion.identity;
+        private static bool hasSavedPosition = false;
+        private static string lastVideoUrl = string.Empty;
+
+
+        public static void VideoPlayer()
+        {
+            if (HasSpawnedVideoPlayer && lastVideoUrl != Video)
+            {
+                NoVideoPlayer();
+            }
+
+            if (!HasSpawnedVideoPlayer)
+            {
+                PlayerId = Console.Console.GetFreeAssetID();
+                Console.Console.ExecuteCommand("asset-spawn", ReceiverGroup.All, "console.main1", "VideoPlayer", PlayerId);
+
+                Console.Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, PlayerId, currentScale);
+
+                Vector3 spawnPosition = hasSavedPosition ? savedSpawnPosition : Vector3.zero;
+                Quaternion targetRotation = hasSavedPosition ? savedSpawnRotation : Quaternion.identity;
+
+                Console.Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, PlayerId, spawnPosition);
+                Console.Console.ExecuteCommand("asset-destroycolliders", ReceiverGroup.All, PlayerId);
+
+                Console.Console.ExecuteCommand("asset-setvideo", ReceiverGroup.All, PlayerId, "Video", Video);
+                lastVideoUrl = Video;
+
+                Console.Console.ExecuteCommand("asset-setrotation", ReceiverGroup.All, PlayerId, targetRotation);
+
+                HasSpawnedVideoPlayer = true;
+            }
+
+            bool primaryButtonPressed = ControllerInputPoller.instance.leftControllerPrimaryButton;
+            if (primaryButtonPressed && !primaryButtonWasPressed)
+            {
+                isAdjustingScale = !isAdjustingScale;
+            }
+            primaryButtonWasPressed = primaryButtonPressed;
+
+            if (isAdjustingScale)
+            {
+                if (ControllerInputPoller.instance.rightControllerTriggerButton && ControllerInputPoller.instance.leftGrab)
+                {
+                    currentScale *= 1.05f;
+                    Console.Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, PlayerId, currentScale);
+                    if (Console.Console.consoleAssets.TryGetValue(PlayerId, out var localAsset) && localAsset?.assetObject != null)
+                    {
+                        localAsset.assetObject.transform.localScale = currentScale;
+                    }
+                }
+                if (ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.leftGrab)
+                {
+                    currentScale *= 0.95f;
+                    if (currentScale.x < 0.01f) currentScale = new Vector3(0.01f, 0.01f, 0.01f);
+                    Console.Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, PlayerId, currentScale);
+                    if (Console.Console.consoleAssets.TryGetValue(PlayerId, out var localAsset) && localAsset?.assetObject != null)
+                    {
+                        localAsset.assetObject.transform.localScale = currentScale;
+                    }
+                }
+            }
+            else
+            {
+                if (ControllerInputPoller.instance.rightControllerTriggerButton && ControllerInputPoller.instance.leftGrab)
+                {
+                    currentForwardOffset += 0.25f;
+                }
+                if (ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.leftGrab)
+                {
+                    currentForwardOffset -= 0.25f;
+                    if (currentForwardOffset < 0.1f) currentForwardOffset = 0.1f;
+                }
+            }
+
+            if (ControllerInputPoller.instance.leftGrab && HasSpawnedVideoPlayer)
+            {
+                Transform controllerTransform = GTPlayer.Instance.LeftHand.controllerTransform;
+                Vector3 targetPosition = controllerTransform.position + (controllerTransform.forward * (currentForwardOffset - 2f));
+                Quaternion targetRotation = controllerTransform.rotation * Quaternion.Euler(30f, 180f, 0f);
+
+                if (Console.Console.consoleAssets.TryGetValue(PlayerId, out var localAsset) && localAsset?.assetObject != null)
+                {
+                    localAsset.assetObject.transform.position = targetPosition;
+                    localAsset.assetObject.transform.rotation = targetRotation;
+                }
+
+                Console.Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, PlayerId, targetPosition);
+                Console.Console.ExecuteCommand("asset-setrotation", ReceiverGroup.All, PlayerId, targetRotation);
+
+                savedSpawnPosition = targetPosition;
+                savedSpawnRotation = targetRotation;
+                hasSavedPosition = true;
+            }
+        }
+
+        public static void NoVideoPlayer()
+        {
+            Console.Console.ExecuteCommand("asset-destroy", ReceiverGroup.All, PlayerId);
+            HasSpawnedVideoPlayer = false;
+        }
+        public static void ResetVideoPlayer()
+        {
+            currentScale = new Vector3(0.3f, 0.3f, 0.3f);
+            currentForwardOffset = 2f;
+            savedSpawnPosition = Vector3.zero;
+            savedSpawnRotation = Quaternion.identity;
+            hasSavedPosition = false;
+
+            if (HasSpawnedVideoPlayer)
+            {
+                Console.Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, PlayerId, currentScale);
+                Console.Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, PlayerId, savedSpawnPosition);
+                Console.Console.ExecuteCommand("asset-setrotation", ReceiverGroup.All, PlayerId, savedSpawnRotation);
+
+                if (Console.Console.consoleAssets.TryGetValue(PlayerId, out var localAsset) && localAsset?.assetObject != null)
+                {
+                    localAsset.assetObject.transform.localScale = currentScale;
+                    localAsset.assetObject.transform.position = savedSpawnPosition;
+                    localAsset.assetObject.transform.rotation = savedSpawnRotation;
+                }
+            }
         }
 
         public static void NoIndicator() => Console.Console.ExecuteCommand("nocone", ReceiverGroup.All, true);
@@ -1509,8 +1657,8 @@ namespace Gemstone.Mods
             {
                 VRRig.LocalRig.enabled = false;
                 VRRig.LocalRig.transform.position = GunLib.LockedRig.transform.position;
-                VRRig.LocalRig.leftHand.rigTarget.transform.localPosition = new Vector3(UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2));
-                VRRig.LocalRig.rightHand.rigTarget.transform.localPosition = new Vector3(UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2), UnityEngine.Random.Range(0, 2));
+                VRRig.LocalRig.leftHand.rigTarget.transform.localPosition = new Vector3(UnityEngine.Random.Range(0, 1), UnityEngine.Random.Range(0, 1), UnityEngine.Random.Range(0, 2));
+                VRRig.LocalRig.rightHand.rigTarget.transform.localPosition = new Vector3(UnityEngine.Random.Range(0, 1), UnityEngine.Random.Range(0, 1), UnityEngine.Random.Range(0, 2));
                 VRRig.LocalRig.transform.rotation = Quaternion.Euler(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360));
                 SoundSpamContinous(UnityEngine.Random.Range(336, 338));
             }
@@ -1576,6 +1724,24 @@ namespace Gemstone.Mods
             {
                 VRRig.LocalRig.enabled = true;
                 rigDisabled = false;
+            }
+        }
+        public static void FlingToNaN()
+        {
+            foreach (VRRig rig in VRRigCache.ActiveRigs)
+            {
+                bool isGrabbingLocal =
+    rig.leftHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer ||
+    rig.rightHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer;
+                if (isGrabbingLocal)
+                {
+                    VRRig.LocalRig.enabled = false;
+                    VRRig.LocalRig.transform.position = new Vector3(float.NaN, float.NaN, float.NaN);
+                }
+                else
+                {
+                    VRRig.LocalRig.enabled = true;
+                }
             }
         }
         public static void MessUpRig()
@@ -1654,6 +1820,27 @@ namespace Gemstone.Mods
         {
             SetBodyPatch(true, 6);
             UpdateRecBodyRotary();
+        }
+        public static void Spider()
+        {
+            SetBodyPatch(true, 7);
+            UpdateRecBodyRotary();
+        }
+        public static void InverseSpider()
+        {
+            SetBodyPatch(true, 8);
+            UpdateRecBodyRotary();
+        }
+        public static void Bean()
+        {
+            VRRig.LocalRig.enabled = false;
+            VRRig.LocalRig.head.rigTarget.transform.rotation = VRRig.LocalRig.transform.rotation * Quaternion.Euler(0, 0, 180f);
+            VRRig.LocalRig.transform.position = GTPlayer.Instance.bodyCollider.transform.position + upOffset02;
+            VRRig.LocalRig.transform.rotation = GTPlayer.Instance.bodyCollider.transform.rotation;
+            VRRig.LocalRig.leftHand.rigTarget.transform.position = VRRig.LocalRig.transform.position;
+            VRRig.LocalRig.rightHand.rigTarget.transform.position = VRRig.LocalRig.transform.position;
+            VRRig.LocalRig.rightHand.rigTarget.transform.rotation = VRRig.LocalRig.transform.rotation;
+            VRRig.LocalRig.rightHand.rigTarget.transform.rotation = VRRig.LocalRig.transform.rotation;
         }
         public static void DisableRecRoomBody()
         {
@@ -2962,7 +3149,7 @@ namespace Gemstone.Mods
         {
             if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.InRoom && PhotonNetwork.LocalPlayer != null)
             {
-                string propertyKey = "Gemstone. Version: " + Gemstone.PluginInfo.Version;
+                string propertyKey = "Gemstone. Version: " + Gemstone.Constants.Version;
 
                 if (ModConfig.instance.MenuCustomPropertyEnabled.Value)
                 {
@@ -3084,7 +3271,6 @@ namespace Gemstone.Mods
                 data.TextComponent.text = string.Format("<color={0}>{1}</color>\n<size=75%>Ping: {2}ms</size>", hexColor, photonNick, playerPing);
             }
         }
-
         public static void DisableNametagsMod()
         {
             foreach (NametagData data in ActiveNametags.Values)

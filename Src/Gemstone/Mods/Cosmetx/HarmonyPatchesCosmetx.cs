@@ -9,7 +9,7 @@ namespace Gemstone.Mods.Cosmetx
         private static Harmony instance;
 
         public static bool IsPatched { get; private set; }
-        public const string InstanceId = Gemstone.PluginInfo.GUID;
+        public const string InstanceId = Gemstone.Constants.GUID;
 
         internal static void ApplyHarmonyPatches()
         {

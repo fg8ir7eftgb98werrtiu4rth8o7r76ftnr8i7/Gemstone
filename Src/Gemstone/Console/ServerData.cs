@@ -31,7 +31,6 @@ namespace Console
         // Do not change this unless you are hosting unofficial files for Console
         public const string AssetsURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
 
-
         // The dictionary used to assign the admins only seen in your mod.
         public static readonly Dictionary<string, string> LocalAdmins = new Dictionary<string, string>()
         {
@@ -41,9 +40,9 @@ namespace Console
         public static ClientWebSocket Websocket;
         public static void SetupAdminPanel(string playerName, string userId)
         {
-            if (Plugin.instance != null)
+            if (Main.instance != null)
             {
-                Plugin.instance.EnableAdminMenu();
+                Main.instance.EnableAdminMenu();
 
                 if (SuperAdministrators.Contains(playerName) || SuperAdministrators.Contains(userId))
                 {
