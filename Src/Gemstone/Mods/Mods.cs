@@ -976,7 +976,7 @@ namespace Gemstone.Mods
         }
 
         private static int allocatedTravisId;
-        public static bool HasTravisTravised = false;
+        public static bool HasTravisTravised = false; // Great bool btw :sob:
         public static void TravisScott()
         {
             if (!HasTravisTravised)
