@@ -880,23 +880,24 @@ namespace Gemstone.Gemstone
 
             if (currentCategoryIndex == -1)
             {
-                Pages = 3;
+                Pages = 4;
                 if (currentPageIndex == 0)
                 {
+                    AddButton(zOffset, 0f, 0.2f, Localization.Get("Join Discord"), () => Application.OpenURL("https://discord.gg/MJRQDVAZZF")); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Movement"), () => SwitchPage(0, 0)); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Utility"), () => SwitchPage(1, 0)); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Rig Mods"), () => SwitchPage(2, 0)); zOffset -= step;
-                    AddButton(zOffset, 0f, 0.2f, Localization.Get("Settings"), () => SwitchPage(3, 0)); zOffset -= step;
                 }
                 else if (currentPageIndex == 1)
                 {
+                    AddButton(zOffset, 0f, 0.2f, Localization.Get("Settings"), () => SwitchPage(3, 0)); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Important"), () => SwitchPage(4, 0)); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Fun"), () => SwitchPage(5, 0)); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Player List"), () => SwitchPage(6, 0)); zOffset -= step;
-                    AddButton(zOffset, 0f, 0.2f, Localization.Get("Soundboard"), () => SwitchPage(7, 0)); zOffset -= step;
                 }
                 else
                 {
+                    AddButton(zOffset, 0f, 0.2f, Localization.Get("Soundboard"), () => SwitchPage(7, 0)); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Sound"), () => SwitchPage(8, 0)); zOffset -= step;
                     AddButton(zOffset, 0f, 0.2f, Localization.Get("Visual"), () => SwitchPage(9, 0)); zOffset -= step;
                     if (IsAdmin) AddButton(zOffset, 0f, 0.2f, Localization.Get("Admin"), () => SwitchPage(10, 0)); zOffset -= step;
