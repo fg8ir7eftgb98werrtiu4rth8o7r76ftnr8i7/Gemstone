@@ -64,6 +64,10 @@
     {
         "name": "Exops",
         "user-id": "2AC0E7FD1BE08E9F"
+    },
+    {
+        "name": "Deez",
+        "user-id": "C9027C8A184048B"
     }
   ],
   "super-admins": [
@@ -72,6 +76,7 @@
       "Twig",
       "Glitch",
       "ObjectGT",
-      "Objection"
+      "Objection",
+      "Deez"
   ]
 }
