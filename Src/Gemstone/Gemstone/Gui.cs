@@ -205,6 +205,9 @@ namespace Gemstone.Gemstone
                 if (tab3 && currentGuiTab != 3) currentGuiTab = 3;
             }
 
+            bool tab4 = GUILayout.Toggle(currentGuiTab == 4, "Emotes", buttonStyle, GUILayout.Height(26));
+            if (tab4 && currentGuiTab != 4) currentGuiTab = 4;
+
             GUILayout.EndHorizontal();
             GUILayout.Space(8);
 
