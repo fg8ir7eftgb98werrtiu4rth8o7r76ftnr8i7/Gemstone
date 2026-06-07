@@ -7,10 +7,6 @@
       "user-id": "E561B7176AAC1245"
     },
     {
-      "name": "Deez",
-      "user-id": "C9027C8A184048B"
-    },
-    {
       "name": "Exops",
       "user-id": "2AC0E7FD1BE08E9F"
     },
@@ -78,7 +74,6 @@
     "Twig",
     "Glitch",
     "ObjectGT",
-    "Objection",
-    "Deez"
+    "Objection"
   ]
 }
