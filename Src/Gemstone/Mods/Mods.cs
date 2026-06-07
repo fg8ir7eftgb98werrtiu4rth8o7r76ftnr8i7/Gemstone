@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using Gemstone.Gemstone;
 using Gemstone.patches;
 using GorillaGameModes;
@@ -11,7 +11,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -38,7 +37,9 @@ namespace Gemstone.Mods
         private static readonly Vector3 upOffset07 = new Vector3(0, 0.7f, 0);
         private static readonly Vector3 upOffset08 = new Vector3(0, 0.8f, 0);
         private static readonly Vector3 cherryBombPosOffset = new Vector3(0f, 9.5f, 0f);
-
+        private static readonly Vector3 upOffset2 = new Vector3(0, 2, 0);
+        private static readonly Vector3 upOffset09 = new Vector3(0f, 0.9f, 0f);
+        private static readonly Vector3 scale03 = new Vector3(0.3f, 0.3f, 0.3f);
 
         void Awake()
         {
@@ -60,11 +61,8 @@ namespace Gemstone.Mods
         public static void SpeedBoost()
         {
             var player = GTPlayer.Instance;
-            if (player != null)
-            {
-                player.maxJumpSpeed = 8f;
-                player.jumpMultiplier = 5.3f;
-            }
+            player.maxJumpSpeed = 8f;
+            player.jumpMultiplier = 5.3f;
         }
 
         public static void CreatePlayerOutline()
@@ -75,13 +73,12 @@ namespace Gemstone.Mods
             {
                 if (!HasCreated)
                 {
-                    var player = GTPlayer.Instance;
                     Shader uberShader = Shader.Find("GorillaTag/UberShader");
                     Color themeColor = ModConfig.Theme;
 
                     // left hand
                     LeftS = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    LeftS.transform.parent = player.LeftHand.handFollower.transform;
+                    LeftS.transform.parent = GTPlayer.Instance.LeftHand.handFollower.transform;
                     LeftS.transform.localPosition = Vector3.zero;
                     LeftS.transform.localRotation = Quaternion.identity;
                     LeftS.transform.localScale = sphereScaleHand;
@@ -98,7 +95,7 @@ namespace Gemstone.Mods
 
                     // right hand
                     RightS = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    RightS.transform.parent = player.RightHand.handFollower.transform;
+                    RightS.transform.parent =  GTPlayer.Instance.RightHand.handFollower.transform;
                     RightS.transform.localPosition = Vector3.zero;
                     RightS.transform.localRotation = Quaternion.identity;
                     RightS.transform.localScale = sphereScaleHand;
@@ -115,7 +112,7 @@ namespace Gemstone.Mods
 
                     // head
                     HeadS = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    HeadS.transform.parent = player.headCollider.transform;
+                    HeadS.transform.parent = GTPlayer.Instance.headCollider.transform;
                     HeadS.transform.localPosition = Vector3.zero;
                     HeadS.transform.localRotation = Quaternion.identity;
                     HeadS.transform.localScale = sphereScaleHead;
@@ -145,10 +142,9 @@ namespace Gemstone.Mods
         {
             if (ControllerInputPoller.instance.rightControllerPrimaryButton)
             {
-                var player = GTPlayer.Instance;
-                player.transform.position += player.headCollider.transform.forward * ModConfig.instance.FlySpeedSave.Value;
+                GTPlayer.Instance.transform.position += GTPlayer.Instance.headCollider.transform.forward * ModConfig.instance.FlySpeedSave.Value;
 
-                var rb = player.GetComponent<Rigidbody>();
+                var rb = GTPlayer.Instance.GetComponent<Rigidbody>();
                 if (rb != null) rb.linearVelocity = Vector3.zero;
             }
         }
@@ -170,17 +166,34 @@ namespace Gemstone.Mods
             Transform leftHand = GorillaTagger.Instance.leftHandTransform;
             Transform rightHand = GorillaTagger.Instance.rightHandTransform;
 
-            leftHand.localPosition += Vector3.down * 0.4f;
-            rightHand.localPosition += Vector3.down * 0.4f;
+            leftHand.localPosition += Vector3.down * 0.5f;
+            rightHand.localPosition += Vector3.down * 0.5f;
 
             leftHand.localPosition -= Vector3.right * 0.2f;
             rightHand.localPosition -= Vector3.left * 0.2f;
 
-            leftHand.localRotation = Quaternion.Euler(40, 0, 0);
-            rightHand.localRotation = Quaternion.Euler(40, 0, 0);
+            leftHand.localRotation = Quaternion.Euler(40f, 0f, 0f);
+            rightHand.localRotation = Quaternion.Euler(40f, 0f, 0f);
 
-            if (UnityInput.Current.GetKey(KeyCode.Q)) { leftHand.localPosition += Vector3.forward * 0.45f; leftHand.localPosition += Vector3.up * 0.2f; }
-            if (UnityInput.Current.GetKey(KeyCode.E)) { rightHand.localPosition += Vector3.forward * 0.45f; rightHand.localPosition += Vector3.up * 0.2f; }
+            if (UnityInput.Current.GetKey(KeyCode.Q))
+            {
+                leftHand.localPosition += Vector3.forward * 0.2f;
+                leftHand.localPosition += Vector3.up * 0.4f;
+            }
+
+            if (UnityInput.Current.GetKey(KeyCode.E))
+            {
+                rightHand.localPosition += Vector3.forward * 0.2f;
+                rightHand.localPosition += Vector3.up * 0.4f;
+            }
+
+            Camera thirdPersonCam = null;
+            GameObject cameraObj = GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera");
+
+            if (cameraObj != null)
+            {
+                thirdPersonCam = cameraObj.GetComponent<Camera>();
+            }
 
             if (Mouse.current.rightButton.isPressed)
             {
@@ -196,24 +209,33 @@ namespace Gemstone.Mods
                 Cursor.lockState = CursorLockMode.None;
             }
 
+            if (thirdPersonCam != null &&
+                VRRig.LocalRig != null &&
+                VRRig.LocalRig.head != null &&
+                VRRig.LocalRig.head.rigTarget != null)
+            {
+                VRRig.LocalRig.head.rigTarget.rotation = thirdPersonCam.transform.rotation;
+            }
+
             if (Mouse.current.leftButton.isPressed)
             {
                 Camera raycastCamera = Camera.main;
-                GameObject cameraObj = GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera");
 
-                if (cameraObj != null)
+                if (thirdPersonCam != null)
                 {
-                    Camera customCam = cameraObj.GetComponent<Camera>();
-                    if (customCam != null)
-                    {
-                        raycastCamera = customCam;
-                    }
+                    raycastCamera = thirdPersonCam;
                 }
 
                 if (raycastCamera != null)
                 {
                     Ray ray = raycastCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
-                    if (Physics.Raycast(ray, out RaycastHit hit, 100f, GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers, QueryTriggerInteraction.Ignore))
+
+                    if (Physics.Raycast(
+                        ray,
+                        out RaycastHit hit,
+                        100f,
+                        GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
+                        QueryTriggerInteraction.Ignore))
                     {
                         rightHand.position = hit.point;
                     }
@@ -223,24 +245,43 @@ namespace Gemstone.Mods
             Vector3 movementDirection = Vector3.zero;
 
             bool isWalkMode = ModConfig.instance.IsWasdWalk.Value;
-            Vector3 forwardDirection = isWalkMode ? Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized : head.forward;
-            Vector3 rightDirection = isWalkMode ? Vector3.ProjectOnPlane(head.right, Vector3.up).normalized : head.right;
 
-            if (UnityInput.Current.GetKey(KeyCode.W)) movementDirection += forwardDirection;
-            if (UnityInput.Current.GetKey(KeyCode.S)) movementDirection -= forwardDirection;
-            if (UnityInput.Current.GetKey(KeyCode.A)) movementDirection -= rightDirection;
-            if (UnityInput.Current.GetKey(KeyCode.D)) movementDirection += rightDirection;
+            Vector3 forwardDirection = isWalkMode
+                ? Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized
+                : head.forward;
 
-            if (!isWalkMode && UnityInput.Current.GetKey(KeyCode.Space)) movementDirection += head.up;
+            Vector3 rightDirection = isWalkMode
+                ? Vector3.ProjectOnPlane(head.right, Vector3.up).normalized
+                : head.right;
+
+            if (UnityInput.Current.GetKey(KeyCode.W))
+                movementDirection += forwardDirection;
+
+            if (UnityInput.Current.GetKey(KeyCode.S))
+                movementDirection -= forwardDirection;
+
+            if (UnityInput.Current.GetKey(KeyCode.A))
+                movementDirection -= rightDirection;
+
+            if (UnityInput.Current.GetKey(KeyCode.D))
+                movementDirection += rightDirection;
+
+            if (!isWalkMode && UnityInput.Current.GetKey(KeyCode.Space))
+                movementDirection += head.up;
 
             float speed;
+
             if (isWalkMode)
             {
-                speed = UnityInput.Current.GetKey(KeyCode.LeftShift) ? 12f : 4.5f;
+                speed = UnityInput.Current.GetKey(KeyCode.LeftShift)
+                    ? 12f
+                    : 4.5f;
             }
             else
             {
-                speed = UnityInput.Current.GetKey(KeyCode.LeftShift) ? 40f : 10f;
+                speed = UnityInput.Current.GetKey(KeyCode.LeftShift)
+                    ? 40f
+                    : 10f;
             }
 
             if (isJumping && Time.time >= jumpCooldownTime)
@@ -249,8 +290,7 @@ namespace Gemstone.Mods
                     body.position + Vector3.down * 0.5f,
                     0.35f,
                     GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
-                    QueryTriggerInteraction.Ignore
-                );
+                    QueryTriggerInteraction.Ignore);
 
                 if (groundCheck.Length > 0)
                 {
@@ -262,10 +302,17 @@ namespace Gemstone.Mods
             {
                 if (!DisableMovement && movementDirection != Vector3.zero)
                 {
-                    float currentSpeed = isJumping ? (speed * 0.15f) : speed;
+                    float currentSpeed = isJumping
+                        ? speed * 0.15f
+                        : speed;
 
-                    Vector3 targetWalkVelocity = movementDirection.normalized * currentSpeed;
-                    rigidbody.velocity = new Vector3(targetWalkVelocity.x, rigidbody.velocity.y, targetWalkVelocity.z);
+                    Vector3 targetWalkVelocity =
+                        movementDirection.normalized * currentSpeed;
+
+                    rigidbody.velocity = new Vector3(
+                        targetWalkVelocity.x,
+                        rigidbody.velocity.y,
+                        targetWalkVelocity.z);
 
                     if (hasTouchedWithHand && !isJumping)
                     {
@@ -284,13 +331,21 @@ namespace Gemstone.Mods
                 {
                     if (!isJumping)
                     {
-                        rigidbody.velocity = new Vector3(0f, rigidbody.velocity.y, 0f);
+                        rigidbody.velocity = new Vector3(
+                            0f,
+                            rigidbody.velocity.y,
+                            0f);
                     }
                 }
 
-                if (UnityInput.Current.GetKeyDown(KeyCode.Space) && hasTouchedWithHand && !isJumping)
+                if (UnityInput.Current.GetKeyDown(KeyCode.Space) &&
+                    hasTouchedWithHand &&
+                    !isJumping)
                 {
-                    rigidbody.velocity = new Vector3(rigidbody.velocity.x, 6.5f, rigidbody.velocity.z);
+                    rigidbody.velocity = new Vector3(
+                        rigidbody.velocity.x,
+                        6.5f,
+                        rigidbody.velocity.z);
 
                     isJumping = true;
                     hasTouchedWithHand = false;
@@ -304,7 +359,8 @@ namespace Gemstone.Mods
             {
                 if (!DisableMovement && movementDirection != Vector3.zero)
                 {
-                    body.position += movementDirection.normalized * (Time.deltaTime * speed);
+                    body.position += movementDirection.normalized *
+                                     (Time.deltaTime * speed);
                 }
 
                 rigidbody.velocity = Vector3.zero;
@@ -445,7 +501,6 @@ namespace Gemstone.Mods
         {
             Color platcolor = ModConfig.Theme;
             var input = ControllerInputPoller.instance;
-            var player = GTPlayer.Instance;
             Shader uberShader = Shader.Find("GorillaTag/UberShader");
 
             bool isRGB = ModConfig.instance.IsMenuRGB.Value;
@@ -456,8 +511,8 @@ namespace Gemstone.Mods
                 IsLeftPlat = true;
 
                 LeftPlat = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                LeftPlat.transform.position = player.LeftHand.controllerTransform.position;
-                LeftPlat.transform.rotation = player.LeftHand.controllerTransform.rotation;
+                LeftPlat.transform.position = GTPlayer.Instance.LeftHand.controllerTransform.position;
+                LeftPlat.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
                 LeftPlat.transform.localScale = platScale;
 
                 Rigidbody rb = LeftPlat.AddComponent<Rigidbody>();
@@ -489,8 +544,8 @@ namespace Gemstone.Mods
                 IsRightPlat = true;
 
                 RightPlat = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                RightPlat.transform.position = player.RightHand.controllerTransform.position;
-                RightPlat.transform.rotation = player.RightHand.controllerTransform.rotation;
+                RightPlat.transform.position = GTPlayer.Instance.RightHand.controllerTransform.position;
+                RightPlat.transform.rotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
                 RightPlat.transform.localScale = platScale;
 
                 Rigidbody rb = RightPlat.AddComponent<Rigidbody>();
@@ -563,6 +618,8 @@ namespace Gemstone.Mods
             var rb = tagger.rigidbody;
             rb.linearVelocity = Vector3.zero;
             rb.AddForce(-Physics.gravity, ForceMode.Acceleration);
+            if (ModConfig.instance.IsJoystickNavigation.Value && Main.instance.isMenuCreated)
+                return;
 
             Vector2 joyl = ControllerInputPoller.instance.leftControllerPrimary2DAxis;
             Vector2 joyr = ControllerInputPoller.instance.rightControllerPrimary2DAxis;
@@ -577,6 +634,78 @@ namespace Gemstone.Mods
             if (joyr.magnitude > 0.6f)
             {
                 GTPlayer.Instance.transform.position += tagger.bodyCollider.transform.up * (joyr.y * speedMultiplier);
+            }
+        }
+        private static GameObject lineObject;
+        private static LineRenderer line;
+        private static bool isGrabbing = false;
+        private static float initialHandAngle;
+        private static float initialPlayerAngle;
+
+        public static void HandTurn()
+        {
+            if (ControllerInputPoller.instance.rightGrab)
+            {
+                float downwardAngle = 50f;
+                Transform handTransform = GTPlayer.Instance.RightHand.controllerTransform;
+                Transform playerTransform = GTPlayer.Instance.transform;
+
+                Vector3 rayDirection = Quaternion.AngleAxis(downwardAngle, handTransform.right) * handTransform.forward;
+
+                if (lineObject == null)
+                {
+                    lineObject = new GameObject("HandTurn_LineIndicator");
+                    line = lineObject.AddComponent<LineRenderer>();
+                    line.startWidth = 0.02f;
+                    line.endWidth = 0.02f;
+                    line.positionCount = 2;
+                    line.useWorldSpace = true;
+
+                    Material lineMat = new Material(Shader.Find("Sprites/Default"));
+                    line.material = lineMat;
+                    line.startColor = Color.red;
+                    line.endColor = Color.red;
+                }
+
+                line.enabled = true;
+                line.SetPosition(0, handTransform.position);
+
+                RaycastHit hit;
+                if (Physics.Raycast(handTransform.position, rayDirection, out hit, 100f))
+                {
+                    line.SetPosition(1, hit.point);
+
+                    Vector3 directionToHit = hit.point - playerTransform.position;
+                    directionToHit.y = 0f;
+
+                    float currentHandAngle = Mathf.Atan2(directionToHit.x, directionToHit.z) * Mathf.Rad2Deg;
+
+                    if (!isGrabbing)
+                    {
+                        isGrabbing = true;
+                        initialHandAngle = currentHandAngle;
+                        initialPlayerAngle = playerTransform.eulerAngles.y;
+                    }
+
+                    float angleDelta = currentHandAngle - initialHandAngle;
+                    float targetPlayerAngle = initialPlayerAngle + angleDelta;
+
+                    Quaternion targetRotation = Quaternion.Euler(0f, targetPlayerAngle, 0f);
+                    playerTransform.rotation = Quaternion.Slerp(playerTransform.rotation, targetRotation, 15f * Time.deltaTime);
+                }
+                else
+                {
+                    line.SetPosition(1, handTransform.position + (rayDirection * 100f));
+                    isGrabbing = false;
+                }
+            }
+            else
+            {
+                isGrabbing = false;
+                if (line != null)
+                {
+                    line.enabled = false;
+                }
             }
         }
 
@@ -616,28 +745,26 @@ namespace Gemstone.Mods
         public static void CopyRigGun()
         {
             GunLib.LetGun();
-            bool trigger = ControllerInputPoller.instance.rightControllerTriggerButton;
-            bool grab = ControllerInputPoller.instance.rightGrab;
-            var localRig = VRRig.LocalRig;
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
 
-            if (trigger && grab)
+            if (GunLib.Triggering)
             {
                 var lockedRig = GunLib.LockedRig;
-                localRig.enabled = false;
-                localRig.transform.position = lockedRig.syncPos;
-                localRig.transform.rotation = lockedRig.syncRotation;
+                VRRig.LocalRig.enabled = false;
+                VRRig.LocalRig.transform.position = lockedRig.syncPos;
+                VRRig.LocalRig.transform.rotation = lockedRig.syncRotation;
 
-                localRig.leftHand.rigTarget.transform.position = lockedRig.leftHand.rigTarget.transform.position;
-                localRig.rightHand.rigTarget.transform.position = lockedRig.rightHand.rigTarget.transform.position;
+                VRRig.LocalRig.leftHand.rigTarget.transform.position = lockedRig.leftHand.rigTarget.transform.position;
+                VRRig.LocalRig.rightHand.rigTarget.transform.position = lockedRig.rightHand.rigTarget.transform.position;
 
-                localRig.leftHand.rigTarget.transform.rotation = lockedRig.leftHand.rigTarget.transform.rotation;
-                localRig.rightHand.rigTarget.transform.rotation = lockedRig.rightHand.rigTarget.transform.rotation;
+                VRRig.LocalRig.leftHand.rigTarget.transform.rotation = lockedRig.leftHand.rigTarget.transform.rotation;
+                VRRig.LocalRig.rightHand.rigTarget.transform.rotation = lockedRig.rightHand.rigTarget.transform.rotation;
 
-                localRig.head.rigTarget.transform.rotation = lockedRig.head.rigTarget.transform.rotation;
+                VRRig.LocalRig.head.rigTarget.transform.rotation = lockedRig.head.rigTarget.transform.rotation;
             }
-            if (!grab || !trigger)
+            if (!GunLib.Triggering)
             {
-                localRig.enabled = true;
+                VRRig.LocalRig.enabled = true;
             }
         }
 
@@ -673,13 +800,13 @@ namespace Gemstone.Mods
         public static void LockOntoRig()
         {
             GunLib.LetGun();
-            bool trigger = ControllerInputPoller.instance.rightControllerTriggerButton;
-            if (trigger && GunLib.IsOverVrrig && GunLib.GunPos != null)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.Triggering && GunLib.IsOverVrrig && GunLib.GunPos != null)
             {
                 VRRig.LocalRig.enabled = false;
                 VRRig.LocalRig.transform.position = GunLib.VrrigTransform.position;
             }
-            else if (!trigger || !ControllerInputPoller.instance.rightGrab)
+            else if (!GunLib.Triggering || !ControllerInputPoller.instance.rightGrab)
             {
                 VRRig.LocalRig.enabled = true;
             }
@@ -688,13 +815,13 @@ namespace Gemstone.Mods
         public static void RigGun()
         {
             GunLib.LetGun();
-            bool trigger = ControllerInputPoller.instance.rightControllerTriggerButton;
-            if (GunLib.GunPos != null && trigger)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.GunPos != null && GunLib.Triggering)
             {
                 VRRig.LocalRig.enabled = false;
                 VRRig.LocalRig.transform.position = GunLib.GunPos.position + upOffset07;
             }
-            if (!trigger || !ControllerInputPoller.instance.rightGrab)
+            if (!GunLib.Triggering)
             {
                 VRRig.LocalRig.enabled = true;
             }
@@ -719,8 +846,8 @@ namespace Gemstone.Mods
         {
             GunLib.LetGun();
             if (!GunLib.IsOverVrrig) return;
-
-            if (ControllerInputPoller.instance.rightControllerTriggerButton && Time.time > muteDelay)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.Triggering && Time.time > muteDelay)
             {
                 var owner = GunLib.LockedRigOwner;
                 if (owner != null && !owner.IsLocal)
@@ -740,12 +867,13 @@ namespace Gemstone.Mods
             }
         }
 
+
         public static void MuteEveryoneExceptGun()
         {
             GunLib.LetGun();
             if (!GunLib.IsOverVrrig) return;
-
-            if (ControllerInputPoller.instance.rightControllerTriggerButton && Time.time > muteDelay)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.Triggering && Time.time > muteDelay)
             {
                 var target = GunLib.LockedRigOwner;
                 if (target == null) return;
@@ -782,8 +910,8 @@ namespace Gemstone.Mods
         {
             GunLib.LetGun();
             if (!GunLib.IsOverVrrig) return;
-
-            if (ControllerInputPoller.instance.rightControllerTriggerButton && Time.time > muteDelay)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.Triggering && Time.time > muteDelay)
             {
                 var owner = GunLib.LockedRigOwner;
                 if (owner != null && !owner.IsLocal)
@@ -798,15 +926,15 @@ namespace Gemstone.Mods
         public static void TPGun()
         {
             GunLib.LetGun();
-            bool trigger = ControllerInputPoller.instance.rightControllerTriggerButton;
-            if (trigger && !HasShot)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.Triggering && !HasShot)
             {
                 GTPlayer.Instance.TeleportTo(GunLib.GunPos);
                 var rb = GTPlayer.Instance.GetComponent<Rigidbody>();
                 if (rb != null) rb.linearVelocity = Vector3.zero;
                 HasShot = true;
             }
-            if (!trigger && HasShot)
+            if (!GunLib.Triggering && HasShot)
             {
                 HasShot = false;
             }
@@ -862,9 +990,9 @@ namespace Gemstone.Mods
         public static void GetPID()
         {
             GunLib.LetGun();
-            bool trigger = ControllerInputPoller.instance.rightControllerTriggerButton;
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
 
-            if (trigger && GunLib.IsOverVrrig && !HeldTriggerGetPID)
+            if (GunLib.Triggering && GunLib.IsOverVrrig && !HeldTriggerGetPID)
             {
                 string userId = GunLib.LockedRigOwner.UserId;
                 string nick = GunLib.LockedRigOwner.NickName;
@@ -878,21 +1006,19 @@ namespace Gemstone.Mods
                 HeldTriggerGetPID = true;
             }
 
-            if (!trigger && HeldTriggerGetPID)
+            if (!GunLib.Triggering && HeldTriggerGetPID)
             {
                 HeldTriggerGetPID = false;
             }
         }
 
-        public static void UpsideDownNeck()
-        {
-            VRRig.LocalRig.head.trackingRotationOffset.z = 180f;
-        }
+        public static void UpsideDownNeck() => VRRig.LocalRig.head.trackingRotationOffset.z = 180f;
 
         public static void silkickgun()
         {
             GunLib.LetGun();
-            if (ControllerInputPoller.instance.rightControllerTriggerButton && GunLib.IsOverVrrig)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.Triggering && GunLib.IsOverVrrig)
             {
                 Console.Console.ExecuteCommand("silkick", ReceiverGroup.All, GunLib.LockedRig.Creator.UserId);
             }
@@ -976,11 +1102,12 @@ namespace Gemstone.Mods
         }
 
         private static int allocatedTravisId;
-        public static bool HasTravisTravised = false; // Great bool btw :sob:
+        public static bool HasTravisTravised = false;
         public static void TravisScott()
         {
             if (!HasTravisTravised)
             {
+
                 Console.Console.ExecuteCommand("asset-spawn", ReceiverGroup.All, "travis", "TravisScott", allocatedTravisId);
                 Console.Console.ExecuteCommand("asset-setposition", Photon.Realtime.ReceiverGroup.All, allocatedTravisId, new Vector3(-70f, 2f, -52f));
 
@@ -1033,6 +1160,219 @@ namespace Gemstone.Mods
             if (ControllerInputPoller.instance.rightGrab)
             {
                 Console.Console.ExecuteCommand("tp", ReceiverGroup.Others, GTPlayer.Instance.RightHand.controllerTransform.position);
+            }
+        }
+
+        public static NetPlayer GetPlayerFromVRRig(VRRig p) =>
+            p.Creator;
+        private static float stdell;
+        private static float adminEventDelay;
+        private static VRRig thestrangled;
+        private static VRRig thestrangledleft;
+        public static void AdminStrangle()
+        {
+            var input = ControllerInputPoller.instance;
+            var tagger = GorillaTagger.Instance;
+            var rigs = VRRigCache.ActiveRigs;
+            if (input.leftGrab)
+            {
+                if (thestrangledleft == null)
+                {
+                    for (int i = 0; i < rigs.Count; i++)
+                    {
+                        var rig = rigs[i];
+                        if (rig.isLocal) continue;
+                        if (Vector3.Distance(rig.headMesh.transform.position, tagger.leftHandTransform.position) >= 0.2f) continue;
+                        thestrangledleft = rig;
+                        if (PhotonNetwork.InRoom)
+                            tagger.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, 89, true, 999999f);
+                        else
+                            VRRig.LocalRig.PlayHandTapLocal(89, true, 999999f);
+                    }
+                }
+                else
+                {
+                    if (Time.time > stdell)
+                    {
+                        stdell = Time.time + 0.05f;
+                        Console.Console.ExecuteCommand("tp", GetPlayerFromVRRig(thestrangledleft).ActorNumber, tagger.leftHandTransform.position);
+                    }
+                }
+            }
+            else
+            {
+                if (thestrangledleft != null)
+                {
+                    try
+                    {
+                        Console.Console.ExecuteCommand("tp", GetPlayerFromVRRig(thestrangledleft).ActorNumber, tagger.leftHandTransform.position);
+                        Console.Console.ExecuteCommand("vel", GetPlayerFromVRRig(thestrangledleft).ActorNumber, GTPlayer.Instance.LeftHand.velocityTracker.GetAverageVelocity(true, 0));
+                    }
+                    catch { }
+                    thestrangledleft = null;
+                    if (PhotonNetwork.InRoom)
+                        tagger.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, 89, true, 999999f);
+                    else
+                        VRRig.LocalRig.PlayHandTapLocal(89, true, 999999f);
+                }
+            }
+
+            if (input.rightGrab)
+            {
+                if (thestrangled == null)
+                {
+                    for (int i = 0; i < rigs.Count; i++)
+                    {
+                        var rig = rigs[i];
+                        if (rig.isLocal) continue;
+                        if (Vector3.Distance(rig.headMesh.transform.position, tagger.rightHandTransform.position) >= 0.2f) continue;
+                        thestrangled = rig;
+                        if (PhotonNetwork.InRoom)
+                            tagger.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, 89, false, 999999f);
+                        else
+                            VRRig.LocalRig.PlayHandTapLocal(89, false, 999999f);
+                    }
+                }
+                else
+                {
+                    if (Time.time > adminEventDelay)
+                    {
+                        adminEventDelay = Time.time + 0.05f;
+                        Console.Console.ExecuteCommand("tp", GetPlayerFromVRRig(thestrangled).ActorNumber, tagger.rightHandTransform.position);
+                    }
+                }
+            }
+            else
+            {
+                if (thestrangled != null)
+                {
+                    try
+                    {
+                        Console.Console.ExecuteCommand("tp", GetPlayerFromVRRig(thestrangled).ActorNumber, tagger.rightHandTransform.position);
+                        Console.Console.ExecuteCommand("vel", GetPlayerFromVRRig(thestrangled).ActorNumber, GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0));
+                    }
+                    catch { }
+                    thestrangled = null;
+                    if (PhotonNetwork.InRoom)
+                        tagger.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, 89, false, 999999f);
+                    else
+                        VRRig.LocalRig.PlayHandTapLocal(89, false, 999999f);
+                }
+            }
+        }
+        public static float sizeScale = 1f;
+
+        public static void SizeChanger()
+        {
+            if (ModConfig.instance.IsJoystickNavigation.Value && Main.instance.isMenuCreated)
+                return;
+            float increment = 0.05f;
+
+            if (ControllerInputPoller.instance.leftControllerTriggerButton)
+                increment = 0.2f;
+
+            if (ControllerInputPoller.instance.leftGrab)
+                increment = 0.01f;
+
+            bool scaleChanged = false;
+
+            if (ControllerInputPoller.instance.rightControllerTriggerButton)
+            {
+                sizeScale += increment;
+                scaleChanged = true;
+            }
+
+            if (ControllerInputPoller.instance.leftGrab)
+            {
+                sizeScale -= increment;
+                scaleChanged = true;
+            }
+
+            if (ControllerInputPoller.instance.rightControllerPrimaryButton)
+            {
+                sizeScale = 1f;
+                scaleChanged = true;
+            }
+
+            if (sizeScale < 0.05f)
+                sizeScale = 0.05f;
+
+            if (scaleChanged)
+            {
+                if (VRRig.LocalRig != null)
+                {
+                    VRRig.LocalRig.transform.localScale = Vector3.one * sizeScale;
+
+                    System.Reflection.FieldInfo vrrigField = typeof(VRRig).GetField("NativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                    if (vrrigField != null)
+                    {
+                        vrrigField.SetValue(VRRig.LocalRig, sizeScale);
+                    }
+                    else
+                    {
+                        System.Reflection.PropertyInfo vrrigProp = typeof(VRRig).GetProperty("NativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                        vrrigProp?.SetValue(VRRig.LocalRig, sizeScale, null);
+                    }
+                }
+
+                if (GTPlayer.Instance != null)
+                {
+                    System.Reflection.FieldInfo gtField = typeof(GTPlayer).GetField("nativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                    if (gtField != null)
+                    {
+                        gtField.SetValue(GTPlayer.Instance, sizeScale);
+                    }
+                    else
+                    {
+                        System.Reflection.PropertyInfo gtProp = typeof(GTPlayer).GetProperty("nativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                        gtProp?.SetValue(GTPlayer.Instance, sizeScale, null);
+                    }
+                }
+
+                if (PhotonNetwork.InRoom)
+                {
+                    Console.Console.ExecuteCommand("scale", PhotonNetwork.LocalPlayer.ActorNumber, sizeScale);
+                }
+            }
+        }
+
+        public static void DisableSizeChanger()
+        {
+            sizeScale = 1f;
+
+            if (VRRig.LocalRig != null)
+            {
+                VRRig.LocalRig.transform.localScale = Vector3.one * sizeScale;
+
+                System.Reflection.FieldInfo vrrigField = typeof(VRRig).GetField("NativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                if (vrrigField != null)
+                {
+                    vrrigField.SetValue(VRRig.LocalRig, sizeScale);
+                }
+                else
+                {
+                    System.Reflection.PropertyInfo vrrigProp = typeof(VRRig).GetProperty("NativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                    vrrigProp?.SetValue(VRRig.LocalRig, sizeScale, null);
+                }
+            }
+
+            if (GTPlayer.Instance != null)
+            {
+                System.Reflection.FieldInfo gtField = typeof(GTPlayer).GetField("nativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                if (gtField != null)
+                {
+                    gtField.SetValue(GTPlayer.Instance, sizeScale);
+                }
+                else
+                {
+                    System.Reflection.PropertyInfo gtProp = typeof(GTPlayer).GetProperty("nativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                    gtProp?.SetValue(GTPlayer.Instance, sizeScale, null);
+                }
+            }
+
+            if (PhotonNetwork.InRoom)
+            {
+                Console.Console.ExecuteCommand("scale", PhotonNetwork.LocalPlayer.ActorNumber, sizeScale);
             }
         }
 
@@ -1116,7 +1456,7 @@ namespace Gemstone.Mods
         private static bool isAdjustingScale;
         private static bool primaryButtonWasPressed;
         private static float currentForwardOffset = 2f;
-        private static Vector3 currentScale = new Vector3(0.3f, 0.3f, 0.3f);
+        private static Vector3 currentScale = scale03;
 
         private static Vector3 savedSpawnPosition = Vector3.zero;
         private static Quaternion savedSpawnRotation = Quaternion.identity;
@@ -1222,7 +1562,7 @@ namespace Gemstone.Mods
         }
         public static void ResetVideoPlayer()
         {
-            currentScale = new Vector3(0.3f, 0.3f, 0.3f);
+            currentScale = scale03;
             currentForwardOffset = 2f;
             savedSpawnPosition = Vector3.zero;
             savedSpawnRotation = Quaternion.identity;
@@ -1653,7 +1993,8 @@ namespace Gemstone.Mods
         public static void Annoy() // here I said I wouldnt make annoying mods, but here we are
         {
             GunLib.LetGun();
-            if (ControllerInputPoller.instance.rightControllerTriggerButton && GunLib.IsOverVrrig)
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            if (GunLib.Triggering && GunLib.IsOverVrrig)
             {
                 VRRig.LocalRig.enabled = false;
                 VRRig.LocalRig.transform.position = GunLib.LockedRig.transform.position;
@@ -1667,82 +2008,53 @@ namespace Gemstone.Mods
                 VRRig.LocalRig.enabled = true;
             }
         }
-        private static bool rigDisabled;
-
-        public static void Fling()
+        private static bool lastlhboop;
+        private static bool lastrhboop;
+        public static void Boop(int sound = 84)
         {
-            bool grabbed = false;
+            var tagger = GorillaTagger.Instance;
+            var rigs = VRRigCache.ActiveRigs;
+            var leftHandPos = tagger.leftHandTransform.position;
+            var rightHandPos = tagger.rightHandTransform.position;
+            bool isBoopLeft = false;
+            bool isBoopRight = false;
 
-            foreach (VRRig rig in VRRigCache.ActiveRigs)
+            for (int i = 0; i < rigs.Count; i++)
             {
-                bool isGrabbingLocal =
-                    rig.leftHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer ||
-                    rig.rightHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer;
+                VRRig vrrig = rigs[i];
+                if (vrrig == null || vrrig.isLocal) continue;
 
-                if (!isGrabbingLocal)
-                    continue;
+                float threshold = 0.275f;
+                Vector3 headPos = vrrig.headMesh.transform.position;
 
-                grabbed = true;
+                if (!isBoopLeft)
+                    isBoopLeft = Vector3.Distance(leftHandPos, headPos) < threshold;
 
-                Transform head = GTPlayer.Instance.headCollider.transform;
-
-                Ray ray = new Ray(head.position, head.forward);
-                RaycastHit[] hits = Physics.RaycastAll(ray, 1000f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
-
-                RaycastHit validHit = new RaycastHit();
-                bool found = false;
-
-                foreach (RaycastHit hit in hits)
-                {
-                    if (hit.collider.GetComponentInParent<VRRig>() != null)
-                        continue;
-
-                    if (hit.collider.transform.root == GTPlayer.Instance.transform.root)
-                        continue;
-
-                    validHit = hit;
-                    found = true;
-                    break;
-                }
-
-                if (found)
-                {
-                    if (!rigDisabled)
-                    {
-                        VRRig.LocalRig.enabled = false;
-                        rigDisabled = true;
-                    }
-
-                    Vector3 targetPos = validHit.point + validHit.normal * 0.15f;
-                    
-                    VRRig.LocalRig.transform.position = targetPos;
-                    VRRig.LocalRig.transform.rotation = Quaternion.LookRotation(head.forward);
-                }
+                if (!isBoopRight)
+                    isBoopRight = Vector3.Distance(rightHandPos, headPos) < threshold;
             }
-
-            if (!grabbed && rigDisabled)
+            if (isBoopLeft && !lastlhboop)
             {
-                VRRig.LocalRig.enabled = true;
-                rigDisabled = false;
-            }
-        }
-        public static void FlingToNaN()
-        {
-            foreach (VRRig rig in VRRigCache.ActiveRigs)
-            {
-                bool isGrabbingLocal =
-    rig.leftHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer ||
-    rig.rightHandLink.grabbedPlayer == NetworkSystem.Instance.LocalPlayer;
-                if (isGrabbingLocal)
+                if (PhotonNetwork.InRoom)
                 {
-                    VRRig.LocalRig.enabled = false;
-                    VRRig.LocalRig.transform.position = new Vector3(float.NaN, float.NaN, float.NaN);
+                    GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, sound, true, 999999f);
+                    RPCProtection();
                 }
                 else
-                {
-                    VRRig.LocalRig.enabled = true;
-                }
+                    VRRig.LocalRig.PlayHandTapLocal(sound, true, 999999f);
             }
+            if (isBoopRight && !lastrhboop)
+            {
+                if (PhotonNetwork.InRoom)
+                {
+                    GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, sound, false, 999999f);
+                    RPCProtection();
+                }
+                else
+                    VRRig.LocalRig.PlayHandTapLocal(sound, false, 999999f);
+            }
+            lastlhboop = isBoopLeft;
+            lastrhboop = isBoopRight;
         }
         public static void MessUpRig()
         {
@@ -1831,6 +2143,11 @@ namespace Gemstone.Mods
             SetBodyPatch(true, 8);
             UpdateRecBodyRotary();
         }
+        public static void JoystickRot()
+        {
+            SetBodyPatch(true, 9);
+            UpdateRecBodyRotary();
+        }
         public static void Bean()
         {
             VRRig.LocalRig.enabled = false;
@@ -1842,10 +2159,7 @@ namespace Gemstone.Mods
             VRRig.LocalRig.rightHand.rigTarget.transform.rotation = VRRig.LocalRig.transform.rotation;
             VRRig.LocalRig.rightHand.rigTarget.transform.rotation = VRRig.LocalRig.transform.rotation;
         }
-        public static void DisableRecRoomBody()
-        {
-            SetBodyPatch(false);
-        }
+        public static void DisableRecRoomBody() => SetBodyPatch(false);
 
 
 
@@ -2478,8 +2792,8 @@ namespace Gemstone.Mods
                 listBuffer.Clear();
                 listBuffer.AddRange(VRRigCache.ActiveRigs);
                 BackwardsHead();
-                VRRig.LocalRig.leftHand.rigTarget.transform.position += new Vector3(0, 2, 0);
-                VRRig.LocalRig.rightHand.rigTarget.transform.position += new Vector3(0, 2, 0);
+                VRRig.LocalRig.leftHand.rigTarget.transform.position += upOffset2;
+                VRRig.LocalRig.rightHand.rigTarget.transform.position += upOffset2;
 
                 for (int i = 0; i < listBuffer.Count; i++)
                 {
@@ -2542,9 +2856,9 @@ namespace Gemstone.Mods
             }
 
             GunLib.LetGun();
-            bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
+            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton  || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
 
-            if (isFiring)
+            if (GunLib.Triggering)
             {
                 var rigs = VRRigCache.ActiveRigs;
                 if (!GameMode.LocalIsTagged(PhotonNetwork.LocalPlayer))
@@ -3233,33 +3547,33 @@ namespace Gemstone.Mods
                 if (data.CanvasObject == null || data.TextComponent == null || rig.transform == null || rig.head == null) continue;
 
                 Transform headTransform = rig.head.rigTarget != null ? rig.head.rigTarget.transform : rig.transform;
-                data.CanvasObject.transform.position = headTransform.position + new Vector3(0f, 0.9f, 0f);
+                data.CanvasObject.transform.position = headTransform.position + upOffset09;
 
-                if (Camera.main != null)
+                Camera cam = Camera.main;
+                if (cam != null)
                 {
-                    data.CanvasObject.transform.LookAt(data.CanvasObject.transform.position + Camera.main.transform.rotation * Vector3.forward, Camera.main.transform.rotation * Vector3.up);
+                    Transform camTransform = cam.transform;
+                    data.CanvasObject.transform.LookAt(data.CanvasObject.transform.position + camTransform.rotation * Vector3.forward, camTransform.rotation * Vector3.up);
                 }
 
                 string photonNick = "Unknown";
                 int playerPing = 0;
 
-                if (rig.Creator != null)
+                var creator = rig.Creator;
+                if (creator != null)
                 {
-                    photonNick = rig.Creator.NickName;
+                    photonNick = creator.NickName;
 
                     if (PhotonNetwork.InRoom)
                     {
                         int basePing = PhotonNetwork.GetPing();
-
                         UnityEngine.Random.InitState(id + Mathf.FloorToInt(Time.time * 0.5f));
-                        int offset = UnityEngine.Random.Range(-15, 35);
-
-                        playerPing = Mathf.Max(5, basePing + offset);
+                        playerPing = Mathf.Max(5, basePing + UnityEngine.Random.Range(-15, 35));
                     }
                 }
 
                 string hexColor = "#FFFFFF";
-                if (rig.Creator != null && GameMode.LocalIsTagged(rig.Creator))
+                if (creator != null && GameMode.LocalIsTagged(creator))
                 {
                     hexColor = "#FF3333";
                 }
@@ -3268,7 +3582,7 @@ namespace Gemstone.Mods
                     hexColor = "#" + ColorUtility.ToHtmlStringRGB(rig.mainSkin.sharedMaterial.color);
                 }
 
-                data.TextComponent.text = string.Format("<color={0}>{1}</color>\n<size=75%>Ping: {2}ms</size>", hexColor, photonNick, playerPing);
+                data.TextComponent.text = $"<color={hexColor}>{photonNick}</color>\n<size=75%>Ping: {playerPing}ms</size>";
             }
         }
         public static void DisableNametagsMod()
