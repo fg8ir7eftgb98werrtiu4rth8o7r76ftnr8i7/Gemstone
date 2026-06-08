@@ -7,8 +7,9 @@ using BepInEx;
 using GorillaLocomotion;
 using Photon.Voice.Unity;
 using GorillaNetworking;
+using Gemstone.Gemstone;
 
-public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emote code AND the asset bundle
+public class EmoteManager : MonoBehaviour
 {
     private static EmoteManager instance;
     private static AssetBundle assetBundle;
@@ -92,7 +93,8 @@ public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emot
         activeKyle.transform.position = VRRig.LocalRig.transform.Find("rig/body_pivot").position - new Vector3(0f, 1.15f, 0f);
         activeKyle.transform.rotation = VRRig.LocalRig.transform.Find("rig/body_pivot").rotation;
 
-        activeKyle.transform.Find("KyleRobot/RobotKile").gameObject.GetComponent<Renderer>().renderingLayerMask = 0;
+        if (!ModConfig.instance.ShowKyleWhileEmoting.Value)
+            activeKyle.transform.Find("KyleRobot/RobotKile").gameObject.GetComponent<Renderer>().renderingLayerMask = 0;
 
         Animator animator = activeKyle.transform.Find("KyleRobot").GetComponent<Animator>();
         animator.enabled = true;
@@ -113,8 +115,7 @@ public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emot
             animator.Play(clip.name);
             emoteEndTime = Time.time + (duration > 0f ? duration : clip.length) + (looping ? 9999f : 0f);
         }
-
-        if (instance != null)
+        if (instance != null && ModConfig.instance.EmoteSounds.Value)
             activeSoundCoroutine = instance.StartCoroutine(PlayAudioFromUrlCoroutine(audioUrl, animationName));
     }
 
@@ -122,8 +123,8 @@ public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emot
     {
         string dir = Path.Combine(Paths.GameRootPath, "Gemstone", "cache");
         Directory.CreateDirectory(dir);
-
-        string filePath = Path.Combine(dir, animationName + ".wav");
+        string extension = url.EndsWith(".mp3") ? ".mp3" : ".wav";
+        string filePath = Path.Combine(dir, animationName + extension);
 
         if (!File.Exists(filePath))
         {
@@ -135,7 +136,9 @@ public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emot
             }
         }
 
-        using (UnityWebRequest load = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, AudioType.WAV))
+        AudioType type = filePath.EndsWith(".mp3") ? AudioType.MPEG : AudioType.WAV;
+
+        using (UnityWebRequest load = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, type))
         {
             ((DownloadHandlerAudioClip)load.downloadHandler).streamAudio = false;
             yield return load.SendWebRequest();
@@ -190,8 +193,8 @@ public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emot
         activeKyle = Instantiate(assetBundle.LoadAsset<GameObject>("Rig"));
         activeKyle.transform.position = VRRig.LocalRig.transform.Find("rig/body_pivot").position - new Vector3(0f, 1.15f, 0f);
         activeKyle.transform.rotation = VRRig.LocalRig.transform.Find("rig/body_pivot").rotation;
-
-        activeKyle.transform.Find("KyleRobot/RobotKile").gameObject.GetComponent<Renderer>().renderingLayerMask = 0;
+        if (!ModConfig.instance.ShowKyleWhileEmoting.Value)
+            activeKyle.transform.Find("KyleRobot/RobotKile").gameObject.GetComponent<Renderer>().renderingLayerMask = 0;
 
         Animator animator = activeKyle.transform.Find("KyleRobot").GetComponent<Animator>();
         animator.enabled = true;
@@ -209,8 +212,9 @@ public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emot
             emoteEndTime = Time.time + (duration > 0f ? duration : clip.length) + (looping ? 9999f : 0f);
         }
 
+        // Only start audio if configured to do so
         AudioClip sound = assetBundle.LoadAsset<AudioClip>(soundName);
-        if (sound != null && instance != null)
+        if (sound != null && instance != null && ModConfig.instance.EmoteSounds.Value)
         {
             activeSoundCoroutine = instance.StartCoroutine(PlayAudioCoroutine(sound));
         }
@@ -275,7 +279,7 @@ public class EmoteManager : MonoBehaviour // Thanks to IIDK for most of the emot
 
             Transform spine = activeKyle.transform.Find("KyleRobot/ROOT/Hips/Spine1/Spine2");
             VRRig.LocalRig.transform.position = spine.position - (spine.right / 2.5f);
-            VRRig.LocalRig.transform.rotation = Quaternion.Euler(spine.rotation.eulerAngles.x, spine.rotation.eulerAngles.y, 0f);
+            VRRig.LocalRig.transform.rotation = Quaternion.Euler(spine.rotation.eulerAngles.x, spine.rotation.eulerAngles.y, spine.rotation.eulerAngles.z + 90);
 
             Transform lHand = activeKyle.transform.Find("KyleRobot/ROOT/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand");
             Transform rHand = activeKyle.transform.Find("KyleRobot/ROOT/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand");

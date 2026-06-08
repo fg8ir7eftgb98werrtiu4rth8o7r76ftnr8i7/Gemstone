@@ -20,7 +20,7 @@ namespace Gemstone.Gemstone
                          IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, IsWasdWalk, MovementRecorder,
                          IsBallEsp, IsOneHandedMenu, IsEnabledBuilderShelf, IsAnnoy, IsNametags, IsJmanSoundSpam,
                          IsCrystalSoundSpam, Dash, IsSpider, InverseSpider, Bean, IsJoystickNavigation, IsVideoPlayer, IsAdminStrangle,
-                         IsSizeChanger, HandTurn, JoystickRotation, IsBoop;
+                         IsSizeChanger, HandTurn, JoystickRotation, IsBoop, ShowKyleWhileEmoting, EmoteSounds;
 
         public ConfigEntry<float> FlySpeedSave, WebSlingSpeedSave, R, G, B, GunSmoothness;
         public ConfigEntry<int> Language, GunType, MenuType;
@@ -122,6 +122,8 @@ namespace Gemstone.Gemstone
             HandTurn = Main.instance.Config.Bind("Movement", "Hand Turn", false, "");
             JoystickRotation = Main.instance.Config.Bind("Rig", "Joystick Rotation", false, "");
             IsBoop = Main.instance.Config.Bind("Fun", "Boop", false, "");
+            ShowKyleWhileEmoting = Main.instance.Config.Bind("Settings", "Show Kyle While Emoting", false, "");
+            EmoteSounds = Main.instance.Config.Bind("Settings", "Emote Sounds", true, "");
         }
     }
 }

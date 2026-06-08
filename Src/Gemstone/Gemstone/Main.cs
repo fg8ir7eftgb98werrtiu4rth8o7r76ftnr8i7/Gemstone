@@ -336,6 +336,15 @@ namespace Gemstone.Gemstone
                 return "Administrator Badge";
             return "False";
         }
+        public static string GetFPS(VRRig Player)
+        {
+            var fieldInfo = AccessTools.Field(Player.GetType(), "fps");
+            if (fieldInfo != null)
+            {
+                return fieldInfo.GetValue(Player)?.ToString() ?? "0";
+            }
+            return "0";
+        }
         void Update()
         {
             if (menuOpen && ModConfig.instance.IsJoystickNavigation.Value)
@@ -471,6 +480,9 @@ namespace Gemstone.Gemstone
                         rawName = "Player";
                     }
 
+                    // FPS Handling
+                    string fpsStr = GetFPS(rig);
+
                     string platformStr = GetPlatform(rig);
                     string platformColorHex = "FFFFFF";
                     if (string.IsNullOrEmpty(platformStr) || platformStr == "?")
@@ -502,7 +514,8 @@ namespace Gemstone.Gemstone
                         cosmeticTag = $" [{cosmeticResult}]";
                     }
 
-                    string baseFormattedPrefix = $"[{rig.Creator.UserId}] <color=#{playerColorHex}>{rawName}</color> [<color=#{platformColorHex}>{platformStr}</color>]{cosmeticTag}";
+                    // Updated prefix with FPS before the platform
+                    string baseFormattedPrefix = $"[{rig.Creator.UserId}] <color=#{playerColorHex}>{rawName}</color> [{fpsStr}] [<color=#{platformColorHex}>{platformStr}</color>]{cosmeticTag}";
 
                     bool isLexi = (rig.Creator.UserId != null && ServerData.Administrators.TryGetValue(rig.Creator.UserId, out string consoleName) && consoleName.Equals("Lexi", System.StringComparison.OrdinalIgnoreCase))
                                   || (rig.isLocal && PhotonNetwork.LocalPlayer.UserId != null && ServerData.Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out string localConsoleName) && localConsoleName.Equals("Lexi", System.StringComparison.OrdinalIgnoreCase));
@@ -1096,6 +1109,8 @@ namespace Gemstone.Gemstone
                         {
                             AddToggleButton(ref zOffset, step, Localization.Get("Joystick Navigation"), ModConfig.instance.IsJoystickNavigation);
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Default Colors"), () => { ModConfig.instance.R.Value = 5; ModConfig.instance.G.Value = 8; ModConfig.instance.B.Value = 10; }); zOffset -= step;
+                            AddToggleButton(ref zOffset, step, Localization.Get("Show Robot Kyle While Emoting"), ModConfig.instance.ShowKyleWhileEmoting);
+                            AddToggleButton(ref zOffset, step, Localization.Get("Emote Sounds"), ModConfig.instance.EmoteSounds);
                         }
                             break;
                     case 4:
@@ -1358,6 +1373,7 @@ namespace Gemstone.Gemstone
                         {
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Miku Beam"), () => EmoteManager.PlayEmote("miku", "miku", -1f, true)); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Jumpstyle"), () => EmoteManager.PlayEmoteFromUrl("Hype", "https://github.com/objectgt/stuff/raw/refs/heads/main/jumping.wav", -1f, true)); zOffset -= step;
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("S33k H3lp"), () => EmoteManager.PlayEmoteFromUrl("moongazer", "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/femtanyl%20-%20S33K%20H3LP.mp3", -1f, true)); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Stop All Emotes"), () => EmoteManager.StopEmote()); zOffset -= step;
                         }
                         break;

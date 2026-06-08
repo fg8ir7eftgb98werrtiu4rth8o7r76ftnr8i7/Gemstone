@@ -158,6 +158,7 @@ namespace Gemstone.Mods
 
         private static float jumpCooldownTime = 0f;
         private static SphereCollider _probeCollider;
+
         public static void WasdFly()
         {
             Rigidbody rigidbody = GorillaTagger.Instance.rigidbody;
@@ -353,7 +354,7 @@ namespace Gemstone.Mods
                 if (!DisableMovement && movementDirection != Vector3.zero)
                 {
                     body.position += movementDirection.normalized *
-                                     (Time.deltaTime * speed);
+                                   (Time.deltaTime * speed);
                 }
 
                 rigidbody.velocity = Vector3.zero;
@@ -368,6 +369,14 @@ namespace Gemstone.Mods
         {
             const float handRadius = 0.075f;
             const float skinWidth = 0.0025f;
+
+            bool shouldIgnore = Vector3.Distance(hand.position, GorillaTagger.Instance.rigidbody.transform.position) > 2f;
+
+            if (shouldIgnore)
+            {
+                LastHandPositions[hand] = hand.position;
+                return;
+            }
 
             if (!LastHandPositions.TryGetValue(hand, out Vector3 previousPosition))
             {
@@ -419,10 +428,10 @@ namespace Gemstone.Mods
             }
 
             Collider[] overlaps = Physics.OverlapSphere(
-                hand.position,
-                handRadius,
-                GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
-                QueryTriggerInteraction.Ignore);
+                    hand.position,
+                    handRadius,
+                    GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
+                    QueryTriggerInteraction.Ignore);
 
             if (overlaps.Length > 0 && !processingJumpRelease)
             {
@@ -780,8 +789,8 @@ namespace Gemstone.Mods
                     var vrrig = rigs[j];
                     if (vrrig == null || vrrig.isLocal || vrrig.isOfflineVRRig) continue;
 
-                    if (Vector3.Distance(vrrig.rightHandTransform.position, reportBtnPos) < 0.7f ||
-                        Vector3.Distance(vrrig.leftHandTransform.position, reportBtnPos) < 0.7f)
+                    if (Vector3.Distance(vrrig.rightHandTransform.position, reportBtnPos) < 0.4f ||
+                        Vector3.Distance(vrrig.leftHandTransform.position, reportBtnPos) < 0.4f)
                     {
                         PhotonNetwork.Disconnect();
                         NotiLib.SendNotification(vrrig.Creator.NickName + " Tried to report you!", 2000);
@@ -2835,70 +2844,65 @@ namespace Gemstone.Mods
                 Debug.Log($"RPC protection failed: {ex.Message}");
             }
         }
-
-        private static float lastReportTime;
-        private static bool hasTaggedCurrentTarget;
+        public static bool ValidateTag(VRRig Rig) =>
+    Vector3.Distance(VRRig.LocalRig.syncPos, Rig.transform.position) < 6f;
 
         public static void TagGun()
         {
-            RPCProtection();
-            if (ExtremelyFarTagPatch.isDetected)
-            {
-                if (!VRRig.LocalRig.enabled) VRRig.LocalRig.enabled = true;
-                NotiLib.SendNotification("Tag mods are blocked", 2000);
-                return;
-            }
-
             GunLib.LetGun();
-            //bool isFiring = ControllerInputPoller.instance.rightControllerTriggerButton  || ControllerInputPoller.instance.leftControllerTriggerButton && ControllerInputPoller.instance.rightGrab;
 
             if (GunLib.Triggering)
             {
-                var rigs = VRRigCache.ActiveRigs;
-                if (!GameMode.LocalIsTagged(PhotonNetwork.LocalPlayer))
+                if (GunLib.LockedRig != null && !GunLib.LockedRig.isLocal)
                 {
-                    VRRig hunterRig = null;
-                    for (int i = 0; i < rigs.Count; i++)
-                    {
-                        if (!rigs[i].isLocal && GameMode.LocalIsTagged(rigs[i].Creator))
-                        {
-                            hunterRig = rigs[i];
-                            break;
-                        }
-                    }
-
-                    if (hunterRig != null)
+                    if (!GameMode.LocalIsTagged(GunLib.LockedRigOwner))
                     {
                         VRRig.LocalRig.enabled = false;
-                        VRRig.LocalRig.transform.position = hunterRig.leftHand.rigTarget.position;
-                    }
-                }
-                else if (GunLib.IsOverVrrig && !hasTaggedCurrentTarget)
-                {
-                    var targetOwner = GunLib.LockedRigOwner;
-                    if (GameMode.LocalIsTagged(targetOwner))
-                    {
-                        hasTaggedCurrentTarget = true;
-                        VRRig.LocalRig.enabled = true;
-                    }
-                    else
-                    {
-                        var targetTransform = GunLib.LockedRig.transform;
-                        VRRig.LocalRig.enabled = false;
-                        VRRig.LocalRig.transform.position = targetTransform.position - upOffset08;
 
-                        if (Vector3.Distance(VRRig.LocalRig.transform.position, targetTransform.position) <= 1f && Time.time > lastReportTime + 2f)
-                        {
-                            GameMode.ReportTag(GunLib.LockedRig.Creator);
-                            lastReportTime = Time.time;
-                        }
+                        Vector3 position = GunLib.LockedRig.transform.position + new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
+                        VRRig.LocalRig.transform.position = position;
+
+                        VRRig.LocalRig.head.rigTarget.transform.rotation = UnityEngine.Random.rotation;
+                        VRRig.LocalRig.leftHand.rigTarget.transform.position = GunLib.LockedRig.transform.position + new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
+                        VRRig.LocalRig.rightHand.rigTarget.transform.position = GunLib.LockedRig.transform.position + new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
+
+                        VRRig.LocalRig.leftHand.rigTarget.transform.rotation = UnityEngine.Random.rotation;
+                        VRRig.LocalRig.rightHand.rigTarget.transform.rotation = UnityEngine.Random.rotation;
+
+                        VRRig.LocalRig.leftIndex.calcT = 0f;
+                        VRRig.LocalRig.leftMiddle.calcT = 0f;
+                        VRRig.LocalRig.leftThumb.calcT = 0f;
+
+                        VRRig.LocalRig.leftIndex.LerpFinger(1f, false);
+                        VRRig.LocalRig.leftMiddle.LerpFinger(1f, false);
+                        VRRig.LocalRig.leftThumb.LerpFinger(1f, false);
+
+                        VRRig.LocalRig.rightIndex.calcT = 0f;
+                        VRRig.LocalRig.rightMiddle.calcT = 0f;
+                        VRRig.LocalRig.rightThumb.calcT = 0f;
+
+                        VRRig.LocalRig.rightIndex.LerpFinger(1f, false);
+                        VRRig.LocalRig.rightMiddle.LerpFinger(1f, false);
+                        VRRig.LocalRig.rightThumb.LerpFinger(1f, false);
+
+                        if (ValidateTag(GunLib.LockedRig))
+                            ReportTag(GunLib.LockedRig);
                     }
                 }
             }
             else
             {
-                hasTaggedCurrentTarget = false;
-                if (!VRRig.LocalRig.enabled) VRRig.LocalRig.enabled = true;
+                VRRig.LocalRig.enabled = true;
+            }
+        }
+
+        private static float reportTagDelay;
+        public static void ReportTag(VRRig rig)
+        {
+            if (Time.time > reportTagDelay)
+            {
+                reportTagDelay = Time.time + 0.1f;
+                GameMode.ReportTag(GetPlayerFromVRRig(rig));
             }
         }
 

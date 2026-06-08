@@ -355,7 +355,6 @@ namespace Gemstone.Gemstone
 
             GUILayout.Space(8);
             GUILayout.Label("Configuration & Settings", headerStyle, GUILayout.Height(20));
-            DrawModToggle(Localization.Get("Invis Plats"), ModConfig.instance.IsInvisPlat.Value, ModConfig.instance.IsInvisPlat);
             GUILayout.Space(3);
             DrawModToggle(Localization.Get("Menu RGB"), ModConfig.instance.IsMenuRGB.Value, ModConfig.instance.IsMenuRGB);
             GUILayout.Space(3);
@@ -368,6 +367,10 @@ namespace Gemstone.Gemstone
             DrawModToggle(Localization.Get("Joystick Navigation"), ModConfig.instance.IsJoystickNavigation.Value, ModConfig.instance.IsJoystickNavigation);
             GUILayout.Space(3);
             DrawModButton(Localization.Get("Default Colors"), () => { ModConfig.instance.R.Value = 5; ModConfig.instance.G.Value = 8; ModConfig.instance.B.Value = 10; });
+            GUILayout.Space(3);
+            DrawModToggle(Localization.Get("Show Robot Kyle While Emoting"), ModConfig.instance.ShowKyleWhileEmoting.Value, ModConfig.instance.ShowKyleWhileEmoting);
+            GUILayout.Space(3);
+            DrawModToggle(Localization.Get("Emote Sounds"), ModConfig.instance.EmoteSounds.Value, ModConfig.instance.EmoteSounds);
 
             GUILayout.Space(6);
             GUILayout.BeginHorizontal();
@@ -676,6 +679,7 @@ private void DrawEmotes()
 
     DrawModButton(Localization.Get("Miku Beam"), () => EmoteManager.PlayEmote("miku", "miku", -1f, true));
     DrawModButton(Localization.Get("Jumpstyle"), () => EmoteManager.PlayEmoteFromUrl("Hype", "https://github.com/objectgt/stuff/raw/refs/heads/main/jumping.wav", -1f, true));
+    DrawModButton(Localization.Get("S33k H3lp"), () => EmoteManager.PlayEmoteFromUrl("moongazer", "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/femtanyl%20-%20S33K%20H3LP.mp3", -1f, true));
 
     GUILayout.Space(10);
     DrawModButton(Localization.Get("Stop All Emotes"), () => EmoteManager.StopEmote());
