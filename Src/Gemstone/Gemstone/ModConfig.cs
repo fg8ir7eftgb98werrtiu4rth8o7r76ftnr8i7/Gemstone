@@ -17,7 +17,7 @@ namespace Gemstone.Gemstone
                          IsCoolSword, IsTravis, IsPhone, IsAdminGrab, IsKormakur,
                          IsAxe, IsBigAssets, IsTv, IsUpsideDownHead, IsBackwardsHead,
                          IsAntiReportEnabled, IsGhostMonke, IsMenuRGB, IsInvisPlat, IsFunnyRig, IsRecroomTorso, IsRecroomRig, FullBodyTracking, ShowHandCollider, AdminLaser, IsBees, IsTagGun, IsTagAll, IsCopyRigGun,
-                         IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, IsWasdWalk, MovementRecorder,
+                         IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, MovementRecorder,
                          IsBallEsp, IsOneHandedMenu, IsEnabledBuilderShelf, IsAnnoy, IsNametags, IsJmanSoundSpam,
                          IsCrystalSoundSpam, Dash, IsSpider, InverseSpider, Bean, IsJoystickNavigation, IsVideoPlayer, IsAdminStrangle,
                          IsSizeChanger, HandTurn, JoystickRotation, IsBoop, ShowKyleWhileEmoting, EmoteSounds;
@@ -103,7 +103,6 @@ namespace Gemstone.Gemstone
             AdminLaser = Main.instance.Config.Bind("Admin", "Laser", false, "");
             IsCherryBomb = Main.instance.Config.Bind("Admin", "CherryBomb idfk", false, "");
             IsRagdoll = Main.instance.Config.Bind("Rig", "Ragdoll", false, "");
-            IsWasdWalk = Main.instance.Config.Bind("Movement", "Wasd Walk", false, "");
             MovementRecorder = Main.instance.Config.Bind("Movement", "Movement Recorder", false, "");
             IsOneHandedMenu = Main.instance.Config.Bind("Settings", "One Handed Menu", false, "");
             IsEnabledBuilderShelf = Main.instance.Config.Bind("Settings", "Enable Builder Shelf", false, "");

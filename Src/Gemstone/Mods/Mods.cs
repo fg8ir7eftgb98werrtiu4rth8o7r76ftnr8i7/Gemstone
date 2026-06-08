@@ -238,15 +238,8 @@ namespace Gemstone.Mods
 
             Vector3 movementDirection = Vector3.zero;
 
-            bool isWalkMode = ModConfig.instance.IsWasdWalk.Value;
-
-            Vector3 forwardDirection = isWalkMode
-                ? Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized
-                : head.forward;
-
-            Vector3 rightDirection = isWalkMode
-                ? Vector3.ProjectOnPlane(head.right, Vector3.up).normalized
-                : head.right;
+            Vector3 forwardDirection = head.forward;
+            Vector3 rightDirection = head.right;
 
             if (UnityInput.Current.GetKey(KeyCode.W))
                 movementDirection += forwardDirection;
@@ -260,106 +253,18 @@ namespace Gemstone.Mods
             if (UnityInput.Current.GetKey(KeyCode.D))
                 movementDirection += rightDirection;
 
-            if (!isWalkMode && UnityInput.Current.GetKey(KeyCode.Space))
+            if (UnityInput.Current.GetKey(KeyCode.Space))
                 movementDirection += head.up;
 
-            float speed;
+            float speed = UnityInput.Current.GetKey(KeyCode.LeftShift) ? 40f : 10f;
 
-            if (isWalkMode)
+            if (!DisableMovement && movementDirection != Vector3.zero)
             {
-                speed = UnityInput.Current.GetKey(KeyCode.LeftShift)
-                    ? 12f
-                    : 4.5f;
-            }
-            else
-            {
-                speed = UnityInput.Current.GetKey(KeyCode.LeftShift)
-                    ? 40f
-                    : 10f;
+                body.position += movementDirection.normalized * (Time.deltaTime * speed);
             }
 
-            if (isJumping && Time.time >= jumpCooldownTime)
-            {
-                Collider[] groundCheck = Physics.OverlapSphere(
-                    body.position + Vector3.down * 0.5f,
-                    0.35f,
-                    GorillaLocomotion.GTPlayer.Instance.locomotionEnabledLayers,
-                    QueryTriggerInteraction.Ignore);
-
-                if (groundCheck.Length > 0)
-                {
-                    isJumping = false;
-                }
-            }
-
-            if (isWalkMode)
-            {
-                if (!DisableMovement && movementDirection != Vector3.zero)
-                {
-                    float currentSpeed = isJumping
-                        ? speed * 0.15f
-                        : speed;
-
-                    Vector3 targetWalkVelocity =
-                        movementDirection.normalized * currentSpeed;
-
-                    rigidbody.velocity = new Vector3(
-                        targetWalkVelocity.x,
-                        rigidbody.velocity.y,
-                        targetWalkVelocity.z);
-
-                    if (hasTouchedWithHand && !isJumping)
-                    {
-                        float swingSpeed = speed * 1.2f;
-                        float swingAmount = 0.25f;
-                        float wave = Mathf.Sin(Time.time * swingSpeed);
-
-                        leftHand.localPosition += Vector3.forward * (wave * swingAmount);
-                        rightHand.localPosition += Vector3.forward * (-wave * swingAmount);
-
-                        leftHand.localPosition += Vector3.up * (Mathf.Abs(wave) * 0.08f);
-                        rightHand.localPosition += Vector3.up * (Mathf.Abs(Mathf.Cos(Time.time * swingSpeed)) * 0.08f);
-                    }
-                }
-                else
-                {
-                    if (!isJumping)
-                    {
-                        rigidbody.velocity = new Vector3(
-                            0f,
-                            rigidbody.velocity.y,
-                            0f);
-                    }
-                }
-
-                if (UnityInput.Current.GetKeyDown(KeyCode.Space) &&
-                    hasTouchedWithHand &&
-                    !isJumping)
-                {
-                    rigidbody.velocity = new Vector3(
-                        rigidbody.velocity.x,
-                        6.5f,
-                        rigidbody.velocity.z);
-
-                    isJumping = true;
-                    hasTouchedWithHand = false;
-
-                    jumpCooldownTime = Time.time + 0.15f;
-                }
-
-                rigidbody.angularVelocity = Vector3.zero;
-            }
-            else
-            {
-                if (!DisableMovement && movementDirection != Vector3.zero)
-                {
-                    body.position += movementDirection.normalized *
-                                   (Time.deltaTime * speed);
-                }
-
-                rigidbody.velocity = Vector3.zero;
-                rigidbody.angularVelocity = Vector3.zero;
-            }
+            rigidbody.velocity = Vector3.zero;
+            rigidbody.angularVelocity = Vector3.zero;
 
             ResolveHandCollision(leftHand);
             ResolveHandCollision(rightHand);

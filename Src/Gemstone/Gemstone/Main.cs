@@ -1373,7 +1373,7 @@ namespace Gemstone.Gemstone
                         {
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Miku Beam"), () => EmoteManager.PlayEmote("miku", "miku", -1f, true)); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Jumpstyle"), () => EmoteManager.PlayEmoteFromUrl("Hype", "https://github.com/objectgt/stuff/raw/refs/heads/main/jumping.wav", -1f, true)); zOffset -= step;
-                            AddButton(zOffset, 0f, 0.2f, Localization.Get("S33k H3lp"), () => EmoteManager.PlayEmoteFromUrl("moongazer", "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/femtanyl%20-%20S33K%20H3LP.mp3", -1f, true)); zOffset -= step;
+                            AddButton(zOffset, 0f, 0.2f, Localization.Get("S33k H3lp"), () => EmoteManager.PlayEmoteFromUrl("Say So", "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/femtanyl%20-%20S33K%20H3LP.mp3", -1f, true)); zOffset -= step;
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Stop All Emotes"), () => EmoteManager.StopEmote()); zOffset -= step;
                         }
                         break;

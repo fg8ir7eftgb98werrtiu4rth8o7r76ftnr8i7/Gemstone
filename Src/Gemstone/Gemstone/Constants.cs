@@ -1,4 +1,4 @@
-namespace Gemstone.Gemstone
+﻿namespace Gemstone.Gemstone
 {
     internal class Constants
     {
