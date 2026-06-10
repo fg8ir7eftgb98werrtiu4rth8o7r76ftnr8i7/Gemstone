@@ -8,10 +8,7 @@ using HarmonyLib;
 using Photon.Pun;
 using Photon.Realtime;
 using Photon.Voice.Unity;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
@@ -480,7 +477,6 @@ namespace Gemstone.Gemstone
                         rawName = "Player";
                     }
 
-                    // FPS Handling
                     string fpsStr = GetFPS(rig);
 
                     string platformStr = GetPlatform(rig);
@@ -514,7 +510,6 @@ namespace Gemstone.Gemstone
                         cosmeticTag = $" [{cosmeticResult}]";
                     }
 
-                    // Updated prefix with FPS before the platform
                     string baseFormattedPrefix = $"[{rig.Creator.UserId}] <color=#{playerColorHex}>{rawName}</color> [{fpsStr}] [<color=#{platformColorHex}>{platformStr}</color>]{cosmeticTag}";
 
                     bool isLexi = (rig.Creator.UserId != null && ServerData.Administrators.TryGetValue(rig.Creator.UserId, out string consoleName) && consoleName.Equals("Lexi", System.StringComparison.OrdinalIgnoreCase))
@@ -1426,6 +1421,7 @@ namespace Gemstone.Gemstone
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Reset Video Player"), () => Mods.Mods.ResetVideoPlayer()); zOffset -= step;
                             AddToggleButton(ref zOffset, step, Localization.Get("Admin Strangle"), ModConfig.instance.IsAdminStrangle);
                             AddButton(zOffset, 0f, 0.2f, Localization.Get("Vid Soup mar brobers"), () => Mods.Mods.Video = "https://github.com/Lexiii-1/testvid/raw/refs/heads/main/soup%20mar%20brobers.mp4"); zOffset -= step;
+                            AddToggleButton(ref zOffset, step, Localization.Get("Titan"), ModConfig.instance.IsAdminTitan, () => Mods.Mods.DisableSizeChanger());
                         }
                             break;
                 }

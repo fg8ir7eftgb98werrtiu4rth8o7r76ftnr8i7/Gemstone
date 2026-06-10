@@ -1,9 +1,5 @@
 ﻿using BepInEx.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
-using BepInEx;
 
 namespace Gemstone.Gemstone
 {
@@ -20,7 +16,7 @@ namespace Gemstone.Gemstone
                          IsBypassAutoMod, IsBoxEsp, PreviewGun, IsInvisMonke, IsBraceletSpam, IsSpazMonke, IsCherryBomb, IsWasdFly, MenuCustomPropertyEnabled, IsRagdoll, MovementRecorder,
                          IsBallEsp, IsOneHandedMenu, IsEnabledBuilderShelf, IsAnnoy, IsNametags, IsJmanSoundSpam,
                          IsCrystalSoundSpam, Dash, IsSpider, InverseSpider, Bean, IsJoystickNavigation, IsVideoPlayer, IsAdminStrangle,
-                         IsSizeChanger, HandTurn, JoystickRotation, IsBoop, ShowKyleWhileEmoting, EmoteSounds;
+                         IsSizeChanger, HandTurn, JoystickRotation, IsBoop, ShowKyleWhileEmoting, EmoteSounds, IsAdminTitan;
 
         public ConfigEntry<float> FlySpeedSave, WebSlingSpeedSave, R, G, B, GunSmoothness;
         public ConfigEntry<int> Language, GunType, MenuType;
@@ -123,6 +119,7 @@ namespace Gemstone.Gemstone
             IsBoop = Main.instance.Config.Bind("Fun", "Boop", false, "");
             ShowKyleWhileEmoting = Main.instance.Config.Bind("Settings", "Show Kyle While Emoting", false, "");
             EmoteSounds = Main.instance.Config.Bind("Settings", "Emote Sounds", true, "");
+            IsAdminTitan = Main.instance.Config.Bind("Admin", "Admin Titan", false, "");
         }
     }
 }

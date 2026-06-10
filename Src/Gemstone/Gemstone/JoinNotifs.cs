@@ -12,7 +12,7 @@ namespace Gemstone.Gemstone
 
         public override void OnPlayerLeftRoom(Player otherPlayer)
         {
-            NotiLib.SendNotification("<color=red>[LEAVE] </color>" + otherPlayer.NickName, 2000); // this is an ai comment i id skider
+            NotiLib.SendNotification("<color=red>[LEAVE] </color>" + otherPlayer.NickName, 2000);
         }
     }
 }

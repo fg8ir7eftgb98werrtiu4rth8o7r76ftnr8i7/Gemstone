@@ -2,10 +2,6 @@
 using GorillaNetworking;
 using Photon.Pun;
 using Photon.Realtime;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using UnityEngine;
 
 namespace Gemstone.Gemstone
@@ -750,6 +746,8 @@ private void DrawEmotes()
             DrawModButton(Localization.Get("Reset Video Player"), () => Mods.Mods.ResetVideoPlayer());
             GUILayout.Space(5);
             DrawModToggle(Localization.Get("Admin Strangle"), ModConfig.instance.IsAdminStrangle.Value, ModConfig.instance.IsAdminStrangle);
+            GUILayout.Space(5);
+            DrawModToggle(Localization.Get("Titan"), ModConfig.instance.IsAdminTitan.Value, ModConfig.instance.IsAdminTitan, () => Mods.Mods.DisableSizeChanger());
             GUILayout.EndScrollView();
         }
 

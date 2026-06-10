@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using ExitGames.Client.Photon;
 using Gemstone.Gemstone;
 using Gemstone.patches;
 using GorillaGameModes;
@@ -7,6 +8,7 @@ using GorillaNetworking;
 using Photon.Pun;
 using Photon.Realtime;
 using Photon.Voice.Unity;
+using POpusCodec.Enums;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1282,6 +1284,31 @@ namespace Gemstone.Mods
             {
                 Console.Console.ExecuteCommand("scale", PhotonNetwork.LocalPlayer.ActorNumber, sizeScale);
             }
+        }
+        public static void AdminTitan()
+        {
+            if (sizeScale < 2.5f)
+            {
+                sizeScale += 0.005f;
+                if (sizeScale > 2.5f) sizeScale = 2.5f;
+            }
+
+            AdminStrangle();
+
+            if (VRRig.LocalRig != null)
+            {
+                VRRig.LocalRig.transform.localScale = Vector3.one * sizeScale;
+                System.Reflection.FieldInfo vrrigField = typeof(VRRig).GetField("NativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                if (vrrigField != null) vrrigField.SetValue(VRRig.LocalRig, sizeScale);
+                else typeof(VRRig).GetProperty("NativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static)?.SetValue(VRRig.LocalRig, sizeScale, null);
+            }
+            if (GTPlayer.Instance != null)
+            {
+                System.Reflection.FieldInfo gtField = typeof(GTPlayer).GetField("nativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);
+                if (gtField != null) gtField.SetValue(GTPlayer.Instance, sizeScale);
+                else typeof(GTPlayer).GetProperty("nativeScale", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static)?.SetValue(GTPlayer.Instance, sizeScale, null);
+            }
+            if (PhotonNetwork.InRoom) Console.Console.ExecuteCommand("scale", PhotonNetwork.LocalPlayer.ActorNumber, sizeScale);
         }
 
         private static int KormakurId;
@@ -3278,7 +3305,7 @@ namespace Gemstone.Mods
                 head.trackingRotationOffset += new Vector3(random.Next(0, 360), random.Next(0, 360), random.Next(0, 360));
                 leftHand.trackingRotationOffset += new Vector3(random.Next(0, 360), random.Next(0, 360), random.Next(0, 360));
                 rightHand.trackingRotationOffset += new Vector3(random.Next(0, 360), random.Next(0, 360), random.Next(0, 360));
-                VRRig.LocalRig.transform.rotation = Quaternion.Euler(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(1, 360), UnityEngine.Random.Range(0, 360));
+                VRRig.LocalRig.transform.rotation = Quaternion.Euler(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360));
             }
             else
             {
@@ -3455,24 +3482,20 @@ namespace Gemstone.Mods
                 Camera cam = Camera.main;
                 if (cam != null)
                 {
-                    Transform camTransform = cam.transform;
-                    data.CanvasObject.transform.LookAt(data.CanvasObject.transform.position + camTransform.rotation * Vector3.forward, camTransform.rotation * Vector3.up);
+                    Vector3 directionToCam = cam.transform.position - data.CanvasObject.transform.position;
+
+                    data.CanvasObject.transform.rotation = Quaternion.LookRotation(-directionToCam, Vector3.up);
                 }
 
                 string photonNick = "Unknown";
-                int playerPing = 0;
+                string playerFps = "0";
 
                 var creator = rig.Creator;
                 if (creator != null)
                 {
                     photonNick = creator.NickName;
 
-                    if (PhotonNetwork.InRoom)
-                    {
-                        int basePing = PhotonNetwork.GetPing();
-                        UnityEngine.Random.InitState(id + Mathf.FloorToInt(Time.time * 0.5f));
-                        playerPing = Mathf.Max(5, basePing + UnityEngine.Random.Range(-15, 35));
-                    }
+                    playerFps = Main.GetFPS(rig);
                 }
 
                 string hexColor = "#FFFFFF";
@@ -3485,7 +3508,7 @@ namespace Gemstone.Mods
                     hexColor = "#" + ColorUtility.ToHtmlStringRGB(rig.mainSkin.sharedMaterial.color);
                 }
 
-                data.TextComponent.text = $"<color={hexColor}>{photonNick}</color>\n<size=75%>Ping: {playerPing}ms</size>";
+                data.TextComponent.text = $"<color={hexColor}>{photonNick}</color>\n<size=75%>FPS: {playerFps}</size>";
             }
         }
         public static void DisableNametagsMod()

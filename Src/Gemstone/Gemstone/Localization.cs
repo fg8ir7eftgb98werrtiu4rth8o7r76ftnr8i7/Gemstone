@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Web;
+﻿using System.Web;
 using UnityEngine;
-using System.Threading.Tasks;
 
 namespace Gemstone.Gemstone
 {
