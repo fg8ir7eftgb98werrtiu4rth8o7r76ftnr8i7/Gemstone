@@ -141,12 +141,8 @@
       "user-id": "74664FD6ED873236"
     },
     {
-      "name": "Obj",
+      "name": "Obgay",
       "user-id": "BECDDF71F0BE97EB"
-    },
-    {
-      "name": "Sn1pez",
-      "user-id": "9AC19286F4D37B91"
     }
   ],
 
@@ -157,6 +153,9 @@
     "Lexi",
     "Glitch",
     "Kormakur",
-    "Morse"
+    "Morse",
+    "Obgay",
+    "Objection",
+    "ObjectGT"
   ]
 }
