@@ -97,14 +97,6 @@
       "user-id": "ECA1FAD872EC5EF3"
     },
     {
-      "name": "ObjectGT",
-      "user-id": "69B87228EC7FF7F2"
-    },
-    {
-      "name": "Objection",
-      "user-id": "B52B30926D69DEAE"
-    },
-    {
       "name": "test",
       "user-id": "EF42CBBAEBE42EA"
     },
@@ -139,14 +131,6 @@
     {
       "name": "Morse",
       "user-id": "74664FD6ED873236"
-    },
-    {
-      "name": "Obgay",
-      "user-id": "BECDDF71F0BE97EB"
-    },
-    {
-      "name": "Temp",
-      "user-id": "528BEB8F649FD674"
     }
   ],
 
@@ -158,8 +142,5 @@
     "Glitch",
     "Kormakur",
     "Morse",
-    "Obgay",
-    "Objection",
-    "ObjectGT"
   ]
 }
