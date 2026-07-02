@@ -20,10 +20,6 @@
       "user-id": "E561B7176AAC1245"
     },
     {
-      "name": "multifactor",
-      "user-id": "3EA37234BDD23625"
-    },
-    {
       "name": "Twig",
       "user-id": "F11FF07F6E028B08"
     },
@@ -137,14 +133,13 @@
       "user-id": "BECDDF71F0BE97EB"
     },
     {
-      "name": "gemphone user guy",
-      "user-id": "33566AFCE46C6386"
+      "name": "Durrr",
+      "user-id": "621C2851D942720B"
     }
   ],
 
   "super-admins": [
     "kingofnetflix",
-    "multifactor",
     "Twig",
     "Lexi",
     "Glitch",
